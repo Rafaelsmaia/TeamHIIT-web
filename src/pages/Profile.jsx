@@ -1,33 +1,84 @@
 import React, { useState, useEffect } from 'react';
-import { getAuth, updateProfile } from 'firebase/auth';
+import { getAuth, updateProfile, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Importar Storage
-import Header from '../components/Header.jsx';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, Phone, Calendar, Trophy, Target, Award, Camera, Edit3, LogOut, Crown, Upload } from 'lucide-react';
+import Header from '../components/ui/Header.jsx';
 
 function Profile() {
   const auth = getAuth();
-  const storage = getStorage(); // Inicializar Storage
+  const storage = getStorage();
+  const navigate = useNavigate();
+  
   const [currentUser, setCurrentUser] = useState(null);
-  const [displayName, setDisplayName] = useState('');
-  const [profilePhoto, setProfilePhoto] = useState(''); // Novo estado para a URL da foto de perfil
-  const [selectedFile, setSelectedFile] = useState(null); // Novo estado para o arquivo selecionado
+  const [userStats, setUserStats] = useState({
+    completedWorkouts: 0,
+    completedWeeks: 0,
+    achievements: 0
+  });
+  const [isSubscriber, setIsSubscriber] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
+  const [formData, setFormData] = useState({
+    displayName: '',
+    email: '',
+    phone: '',
+    photoURL: ''
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setCurrentUser(user);
-        setDisplayName(user.displayName || '');
-        setProfilePhoto(user.photoURL || ''); // Carregar foto de perfil existente
+        setFormData({
+          displayName: user.displayName || '',
+          email: user.email || '',
+          phone: '',
+          photoURL: user.photoURL || ''
+        });
+
+        // Buscar dados adicionais do usuário no Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setIsSubscriber(userData.isSubscriber || false);
+            setFormData(prev => ({
+              ...prev,
+              phone: userData.phone || ''
+            }));
+            setUserStats({
+              completedWorkouts: userData.completedWorkouts || 0,
+              completedWeeks: userData.completedWeeks || 0,
+              achievements: userData.achievements || 0
+            });
+          }
+        } catch (error) {
+          console.error('Erro ao buscar dados do usuário:', error);
+        }
       } else {
         setCurrentUser(null);
+        navigate('/login');
       }
       setLoading(false);
     });
-    return unsubscribe;
-  }, [auth]);
+
+    return () => unsubscribe();
+  }, [auth, navigate]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
 
   const handleFileChange = (e) => {
     if (e.target.files[0]) {
@@ -35,114 +86,336 @@ function Profile() {
     }
   };
 
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    if (!currentUser) {
-      setMessage('Nenhum usuário logado.');
-      return;
-    }
+  const handleSaveChanges = async () => {
+    if (!currentUser) return;
 
     try {
-      let newPhotoURL = profilePhoto;
+      setUploading(true);
+      setMessage('Atualizando perfil...');
+      
+      let newPhotoURL = formData.photoURL;
 
+      // Upload da foto se houver arquivo selecionado
       if (selectedFile) {
         setMessage('Fazendo upload da foto...');
         const photoRef = ref(storage, `profile_pictures/${currentUser.uid}/${selectedFile.name}`);
         await uploadBytes(photoRef, selectedFile);
         newPhotoURL = await getDownloadURL(photoRef);
-        setProfilePhoto(newPhotoURL);
       }
 
       // Atualizar displayName e photoURL no Firebase Authentication
       await updateProfile(currentUser, {
-        displayName: displayName,
+        displayName: formData.displayName,
         photoURL: newPhotoURL
       });
 
-      // Atualizar displayName e photoURL no Firestore (se o usuário já existir lá)
+      // Atualizar dados no Firestore
       const userDocRef = doc(db, 'users', currentUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
-        await setDoc(userDocRef, { displayName: displayName, photoURL: newPhotoURL }, { merge: true });
+        await setDoc(userDocRef, {
+          displayName: formData.displayName,
+          photoURL: newPhotoURL,
+          phone: formData.phone,
+          updatedAt: new Date()
+        }, { merge: true });
       } else {
         // Se o documento do usuário não existir, crie-o
         await setDoc(userDocRef, {
           email: currentUser.email,
-          displayName: displayName,
+          displayName: formData.displayName,
           photoURL: newPhotoURL,
-          createdAt: new Date()
+          phone: formData.phone,
+          createdAt: new Date(),
+          isSubscriber: false,
+          completedWorkouts: 0,
+          completedWeeks: 0,
+          achievements: 0
         });
       }
 
+      // Atualizar estado local
+      setFormData(prev => ({ ...prev, photoURL: newPhotoURL }));
+      setSelectedFile(null);
+      setEditMode(false);
       setMessage('Perfil atualizado com sucesso!');
-      setSelectedFile(null); // Limpar o arquivo selecionado após o upload
+      
+      // Limpar mensagem após 3 segundos
+      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
       setMessage(`Erro ao atualizar perfil: ${error.message}`);
+    } finally {
+      setUploading(false);
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   if (loading) {
-    return <div className="min-h-screen bg-[#1a1a1a] text-gray-100 flex items-center justify-center">Carregando perfil...</div>;
+    return (
+      <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
+        <Header />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        </div>
+      </div>
+    );
   }
 
   if (!currentUser) {
-    return <div className="min-h-screen bg-[#1a1a1a] text-gray-100 flex items-center justify-center">Você precisa estar logado para ver esta página.</div>;
+    return (
+      <div className="min-h-screen bg-[#1a1a1a] text-gray-100 flex items-center justify-center">
+        Você precisa estar logado para ver esta página.
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
       <Header />
+      
       <div className="container mx-auto px-6 py-8 pt-20">
         <h1 className="text-4xl font-bold text-white mb-8">Meu Perfil</h1>
 
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 max-w-md mx-auto">
-          <div className="mb-4 text-center">
-            {profilePhoto ? (
-              <img src={profilePhoto} alt="Foto de Perfil" className="w-32 h-32 rounded-full mx-auto mb-4 object-cover" />
-            ) : (
-              <div className="w-32 h-32 rounded-full mx-auto mb-4 bg-gray-700 flex items-center justify-center text-gray-400 text-6xl">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                </svg>
+        {/* Cabeçalho do Perfil */}
+        <div className="bg-gray-800 rounded-xl shadow-lg p-8 mb-6">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            {/* Foto de Perfil */}
+            <div className="relative">
+              <div className="w-32 h-32 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white overflow-hidden">
+                {formData.photoURL ? (
+                  <img 
+                    src={formData.photoURL} 
+                    alt="Foto de perfil" 
+                    className="w-32 h-32 rounded-full object-cover"
+                  />
+                ) : (
+                  <User size={48} />
+                )}
               </div>
-            )}
-            <label className="block text-gray-300 text-sm font-bold mb-2">E-mail:</label>
-            <p className="text-white text-lg">{currentUser.email}</p>
+              <label className="absolute -bottom-1 -right-1 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors cursor-pointer">
+                <Camera size={16} />
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept="image/*"
+                />
+              </label>
+            </div>
+
+            {/* Informações Básicas */}
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                <h2 className="text-2xl font-bold text-white">
+                  {formData.displayName || 'Usuário'}
+                </h2>
+                {isSubscriber && (
+                  <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    <Crown size={14} />
+                    Assinante
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-400 mb-4">{formData.email}</p>
+              
+              {/* Stats Rápidas */}
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-gray-700 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-red-500">{userStats.completedWorkouts}</div>
+                  <div className="text-sm text-gray-400">Treinos</div>
+                </div>
+                <div className="bg-gray-700 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-green-500">{userStats.completedWeeks}</div>
+                  <div className="text-sm text-gray-400">Semanas</div>
+                </div>
+                <div className="bg-gray-700 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-purple-500">{userStats.achievements}</div>
+                  <div className="text-sm text-gray-400">Conquistas</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Minha Jornada HIIT */}
+          <div className="bg-gray-800 rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-2 rounded-lg">
+                <Trophy className="text-white" size={20} />
+              </div>
+              <h3 className="text-xl font-semibold text-white">Jornada HIIT</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Target className="text-red-500" size={20} />
+                  <span className="text-gray-300">Treinos Concluídos</span>
+                </div>
+                <span className="font-semibold text-red-500">{userStats.completedWorkouts}</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Calendar className="text-green-500" size={20} />
+                  <span className="text-gray-300">Semanas Completas</span>
+                </div>
+                <span className="font-semibold text-green-500">{userStats.completedWeeks}</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Award className="text-purple-500" size={20} />
+                  <span className="text-gray-300">Conquistas</span>
+                </div>
+                <span className="font-semibold text-purple-500">{userStats.achievements}</span>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => navigate('/jornada-hiit')}
+              className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 px-4 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium"
+            >
+              Ver Jornada Completa
+            </button>
           </div>
 
-          <form onSubmit={handleUpdateProfile}>
-            <div className="mb-4">
-              <label htmlFor="displayName" className="block text-gray-300 text-sm font-bold mb-2">Nome de Exibição:</label>
-              <input
-                type="text"
-                id="displayName"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Seu nome de exibição"
-              />
+          {/* Informações da Conta */}
+          <div className="bg-gray-800 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Informações da Conta</h3>
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+              >
+                <Edit3 size={16} />
+                {editMode ? 'Cancelar' : 'Editar'}
+              </button>
             </div>
-            <div className="mb-6">
-              <label htmlFor="profilePhoto" className="block text-gray-300 text-sm font-bold mb-2">Foto de Perfil:</label>
-              <input
-                type="file"
-                id="profilePhoto"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                onChange={handleFileChange}
-                accept="image/*"
-              />
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
+                {editMode ? (
+                  <input
+                    type="text"
+                    name="displayName"
+                    value={formData.displayName}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Seu nome completo"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
+                    <User className="text-gray-400" size={16} />
+                    <span className="text-gray-300">{formData.displayName || 'Não informado'}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
+                  <Mail className="text-gray-400" size={16} />
+                  <span className="text-gray-300">{formData.email}</span>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
+                {editMode ? (
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="(11) 99999-9999"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
+                    <Phone className="text-gray-400" size={16} />
+                    <span className="text-gray-300">{formData.phone || 'Não informado'}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            {message && <p className="text-green-500 text-center mb-4">{message}</p>}
-            <button
-              type="submit"
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
-            >
-              Atualizar Perfil
+            
+            {editMode && (
+              <button
+                onClick={handleSaveChanges}
+                disabled={uploading}
+                className="w-full mt-4 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar Alterações'
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Gerenciar Assinatura */}
+        <div className="bg-gray-800 rounded-xl shadow-lg p-6 mt-6">
+          <h3 className="text-xl font-semibold text-white mb-4">Gerenciar Assinatura</h3>
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-3 h-3 rounded-full ${isSubscriber ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="font-medium text-white">
+                  {isSubscriber ? 'Plano Ativo' : 'Plano Inativo'}
+                </span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                {isSubscriber 
+                  ? 'Você tem acesso completo a todos os treinos e funcionalidades.'
+                  : 'Assine para ter acesso completo à plataforma.'
+                }
+              </p>
+            </div>
+            
+            <button className="bg-gradient-to-r from-green-600 to-red-600 text-white py-2 px-6 rounded-lg hover:from-green-700 hover:to-red-700 transition-all duration-200 font-medium">
+              {isSubscriber ? 'Gerenciar Assinatura' : 'Assinar Agora'}
             </button>
-          </form>
+          </div>
+        </div>
+
+        {/* Mensagem de Status */}
+        {message && (
+          <div className={`mt-4 p-4 rounded-lg text-center ${
+            message.includes('sucesso') ? 'bg-green-600 text-white' : 
+            message.includes('Erro') ? 'bg-red-600 text-white' : 
+            'bg-blue-600 text-white'
+          }`}>
+            {message}
+          </div>
+        )}
+
+        {/* Botão de Logout */}
+        <div className="bg-gray-800 rounded-xl shadow-lg p-6 mt-6">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors font-medium"
+          >
+            <LogOut size={20} />
+            Sair da Conta
+          </button>
         </div>
       </div>
     </div>
@@ -150,6 +423,3 @@ function Profile() {
 }
 
 export default Profile;
-
-
-

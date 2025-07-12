@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, Star, Bookmark, Share2, Play } from 'lucide-react';
+import { ArrowLeft, Clock, User, Star, Bookmark, Share2, Play, Send, MessageCircle, Lock, Crown } from 'lucide-react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import Header from '../components/ui/Header.jsx';
 
 function VideoPlayer() {
@@ -9,6 +11,44 @@ function VideoPlayer() {
   const location = useLocation();
   const [videoData, setVideoData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [isSubscriber, setIsSubscriber] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  
+  const auth = getAuth();
+  const db = getFirestore();
+
+  useEffect(() => {
+    // Monitor authentication state
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      
+      if (currentUser) {
+        // Verificar se o usuário é assinante
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setIsSubscriber(userData.isSubscriber || false);
+          } else {
+            setIsSubscriber(false);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar assinatura:', error);
+          setIsSubscriber(false);
+        }
+      } else {
+        setIsSubscriber(false);
+      }
+      
+      setCheckingSubscription(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth, db]);
 
   useEffect(() => {
     // Busca dados do vídeo baseado nos parâmetros ou state
@@ -53,7 +93,87 @@ function VideoPlayer() {
     loadVideoData();
   }, [moduleId, videoId, location.state]);
 
-  if (loading) {
+  useEffect(() => {
+    // Load comments for this video (apenas se for assinante)
+    if (videoData?.youtubeId && isSubscriber) {
+      const commentsRef = collection(db, 'comments');
+      const q = query(
+        commentsRef,
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const videoComments = snapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(comment => comment.videoId === videoData.youtubeId);
+        
+        setComments(videoComments);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [videoData?.youtubeId, db, isSubscriber]);
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    
+    if (!user) {
+      alert('Você precisa estar logado para comentar');
+      return;
+    }
+
+    if (!isSubscriber) {
+      alert('Apenas assinantes podem comentar');
+      return;
+    }
+
+    if (!newComment.trim()) {
+      return;
+    }
+
+    setSubmittingComment(true);
+
+    try {
+      await addDoc(collection(db, 'comments'), {
+        videoId: videoData.youtubeId,
+        text: newComment.trim(),
+        userId: user.uid,
+        userName: user.displayName || user.email,
+        userPhoto: user.photoURL || null,
+        createdAt: serverTimestamp()
+      });
+
+      setNewComment('');
+    } catch (error) {
+      console.error('Erro ao adicionar comentário:', error);
+      alert('Erro ao adicionar comentário. Tente novamente.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'Agora';
+    
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Agora';
+    if (diffInMinutes < 60) return `${diffInMinutes}m atrás`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h atrás`;
+    return `${Math.floor(diffInMinutes / 1440)}d atrás`;
+  };
+
+  const handleSubscriptionUpgrade = () => {
+    // Redirecionar para página de assinatura ou contato
+    window.open('https://wa.me/5511999999999?text=Olá! Gostaria de me tornar assinante do Team HIIT', '_blank');
+  };
+
+  if (loading || checkingSubscription) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -105,7 +225,13 @@ function VideoPlayer() {
           
           <div className="flex items-center mb-4">
             <Play className="w-6 h-6 mr-3" />
-            <span className="bg-white/20 px-3 py-1 rounded-full text-sm">Especial</span>
+            <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{videoData.category}</span>
+            {isSubscriber && (
+              <span className="bg-yellow-500/20 px-3 py-1 rounded-full text-sm ml-2 flex items-center">
+                <Crown className="w-4 h-4 mr-1" />
+                Assinante
+              </span>
+            )}
           </div>
           
           <h1 className="text-4xl font-bold mb-4">{videoData.title}</h1>
@@ -126,16 +252,18 @@ function VideoPlayer() {
             </div>
           </div>
           
-          <div className="flex items-center space-x-4 mt-6">
-            <button className="flex items-center bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
-              <Bookmark className="w-5 h-5 mr-2" />
-              Salvar
-            </button>
-            <button className="flex items-center bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
-              <Share2 className="w-5 h-5 mr-2" />
-              Compartilhar
-            </button>
-          </div>
+          {isSubscriber && (
+            <div className="flex items-center space-x-4 mt-6">
+              <button className="flex items-center bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
+                <Bookmark className="w-5 h-5 mr-2" />
+                Salvar
+              </button>
+              <button className="flex items-center bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
+                <Share2 className="w-5 h-5 mr-2" />
+                Compartilhar
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -148,18 +276,125 @@ function VideoPlayer() {
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <h3 className="text-xl font-bold p-6 border-b border-gray-200">Vídeo do Treino</h3>
               <div className="p-6">
-                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                  <iframe
-                    className="absolute top-0 left-0 w-full h-full rounded-lg"
-                    src={`https://www.youtube.com/embed/${videoData.youtubeId}`}
-                    title={videoData.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                </div>
+                {isSubscriber ? (
+                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full rounded-lg"
+                      src={`https://www.youtube.com/embed/${videoData.youtubeId}`}
+                      title={videoData.title}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                ) : (
+                  <div className="relative w-full bg-gray-900 rounded-lg flex items-center justify-center" style={{ paddingBottom: '56.25%' }}>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                      <Lock className="w-16 h-16 mb-4 text-gray-400" />
+                      <h3 className="text-2xl font-bold mb-2">Conteúdo Exclusivo</h3>
+                      <p className="text-gray-300 mb-6 text-center max-w-md">
+                        Este vídeo é exclusivo para assinantes do Team HIIT. 
+                        Torne-se um assinante para acessar todo o conteúdo!
+                      </p>
+                      <button
+                        onClick={handleSubscriptionUpgrade}
+                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 flex items-center"
+                      >
+                        <Crown className="w-5 h-5 mr-2" />
+                        Tornar-se Assinante
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Comments Section - Apenas para assinantes */}
+            {isSubscriber && (
+              <div className="bg-white rounded-xl shadow-lg mt-6">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center">
+                    <MessageCircle className="w-6 h-6 mr-3 text-gray-600" />
+                    <h3 className="text-xl font-bold">Comentários ({comments.length})</h3>
+                  </div>
+                </div>
+
+                {/* Add Comment Form */}
+                {user ? (
+                  <div className="p-6 border-b border-gray-200">
+                    <form onSubmit={handleSubmitComment} className="flex space-x-4">
+                      <div className="flex-shrink-0">
+                        <img
+                          src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email)}&background=f97316&color=fff`}
+                          alt={user.displayName || user.email}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <textarea
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          placeholder="Adicione um comentário..."
+                          className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          rows="3"
+                        />
+                        <div className="flex justify-end mt-3">
+                          <button
+                            type="submit"
+                            disabled={!newComment.trim() || submittingComment}
+                            className="flex items-center bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            <Send className="w-4 h-4 mr-2" />
+                            {submittingComment ? 'Enviando...' : 'Comentar'}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="p-6 border-b border-gray-200 text-center">
+                    <p className="text-gray-600 mb-4">Faça login para comentar</p>
+                    <button
+                      onClick={() => navigate('/auth')}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      Fazer Login
+                    </button>
+                  </div>
+                )}
+
+                {/* Comments List */}
+                <div className="p-6">
+                  {comments.length > 0 ? (
+                    <div className="space-y-6">
+                      {comments.map((comment) => (
+                        <div key={comment.id} className="flex space-x-4">
+                          <div className="flex-shrink-0">
+                            <img
+                              src={comment.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.userName)}&background=f97316&color=fff`}
+                              alt={comment.userName}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="font-semibold text-gray-800">{comment.userName}</span>
+                              <span className="text-sm text-gray-500">{formatDate(comment.createdAt)}</span>
+                            </div>
+                            <p className="text-gray-700 leading-relaxed">{comment.text}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">Seja o primeiro a comentar!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Info Section */}
@@ -221,6 +456,25 @@ function VideoPlayer() {
                 </div>
               </div>
             </div>
+
+            {/* Call to Action para não-assinantes */}
+            {!isSubscriber && (
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl shadow-lg p-6 mt-6">
+                <div className="text-center">
+                  <Crown className="w-12 h-12 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold mb-2">Torne-se Assinante</h3>
+                  <p className="text-white/90 mb-4">
+                    Acesse todos os treinos, comentários e conteúdo exclusivo do Team HIIT!
+                  </p>
+                  <button
+                    onClick={handleSubscriptionUpgrade}
+                    className="bg-white text-orange-500 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors w-full"
+                  >
+                    Assinar Agora
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -229,4 +483,3 @@ function VideoPlayer() {
 }
 
 export default VideoPlayer;
-

@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Play, Clock, Target, Zap, Filter, Grid3X3, List, TrendingUp, Users, Award, Bookmark } from 'lucide-react';
-import Header from '../components/Header.jsx';
-import Carousel from '../components/Carousel.jsx';
-import AnimatedCounter from '../components/AnimatedCounter.jsx';
-import { useToast } from '../components/Toast.jsx';
-
-// Importa todas as imagens da pasta 'CAPAS TEAM HIIT' dinamicamente
-
+import Header from '../components/ui/Header.jsx';
+import { useToast } from '../components/ui/Toast.jsx';
 
 function Dashboard() {
   const [allSections, setAllSections] = useState([]);
@@ -26,7 +21,7 @@ function Dashboard() {
         script.onload = () => {
           if (window.trainingsData && window.trainingsData.sections) {
             setAllSections(window.trainingsData.sections);
-            addToast("Treinos carregados com sucesso!", "success");
+            // Removido: addToast("Treinos carregados com sucesso!", "success");
             setLoading(false);
           } else {
             throw new Error('Dados dos treinos não encontrados');
@@ -47,20 +42,6 @@ function Dashboard() {
     fetchTrainings();
   }, []);
 
-  const getCategoryIcon = (category) => {
-    switch (category.toLowerCase()) {
-      case 'força':
-      case 'específico':
-        return <Target className="w-5 h-5" />;
-      case 'cardio':
-      case 'hiit':
-      case 'desafio':
-        return <Zap className="w-5 h-5" />;
-      default:
-        return <Play className="w-5 h-5" />;
-    }
-  };
-
   const getCategoryColor = (category) => {
     switch (category.toLowerCase()) {
       case 'força':
@@ -78,9 +59,9 @@ function Dashboard() {
     }
   };
 
-  // Slides para o carousel usando a imagem original do Renan Gonçalves - Padrão Weburn
+  // Slides para o carousel - Removidas as mensagens dos banners
   const carouselSlides = [
-    <div key="slide1" className="relative overflow-hidden" style={{ height: 'calc(100vh - 80px)' }}>
+    <div key="slide1" className="relative overflow-hidden" style={{ height: '800px' }}>
       <img 
         src="/renan-slide.png" 
         alt="Team HIIT - Renan Gonçalves" 
@@ -89,35 +70,25 @@ function Dashboard() {
       />
       <div className="absolute inset-0 bg-black/10"></div>
     </div>,
-    <div key="slide2" className="relative overflow-hidden" style={{ height: 'calc(100vh - 80px)' }}>
+    <div key="slide2" className="relative overflow-hidden" style={{ height: '800px' }}>
       <img 
         src="/renan-slide.png" 
-        alt="Team HIIT - Treinos Personalizados" 
+        alt="Team HIIT - Banner 2" 
         className="w-full h-full object-cover object-center"
         style={{ objectPosition: 'center center' }}
       />
       <div className="absolute inset-0 bg-black/20"></div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-white text-center animate-fade-in-up bg-black/40 p-8 rounded-lg max-w-2xl">
-          <h3 className="text-4xl md:text-5xl font-bold mb-4">💪 TREINOS PERSONALIZADOS</h3>
-          <p className="text-xl md:text-2xl opacity-90">Programas adaptados ao seu nível e objetivos</p>
-        </div>
-      </div>
+      {/* Removido: div com mensagem "TREINOS PERSONALIZADOS" */}
     </div>,
-    <div key="slide3" className="relative overflow-hidden" style={{ height: 'calc(100vh - 80px)' }}>
+    <div key="slide3" className="relative overflow-hidden" style={{ height: '800px' }}>
       <img 
         src="/renan-slide.png" 
-        alt="Team HIIT - Resultados Garantidos" 
+        alt="Team HIIT - Banner 3" 
         className="w-full h-full object-cover object-center"
         style={{ objectPosition: 'center center' }}
       />
       <div className="absolute inset-0 bg-black/20"></div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-white text-center animate-fade-in-up bg-black/40 p-8 rounded-lg max-w-2xl">
-          <h3 className="text-4xl md:text-5xl font-bold mb-4">🏆 RESULTADOS GARANTIDOS</h3>
-          <p className="text-xl md:text-2xl opacity-90">Comece hoje sua transformação física</p>
-        </div>
-      </div>
+      {/* Removido: div com mensagem "RESULTADOS GARANTIDOS" */}
     </div>
   ];
 
@@ -150,11 +121,11 @@ function Dashboard() {
       <Header />
       <ToastContainer />
       
-      {/* Hero Carousel - Implementação direta para garantir altura completa */}
+      {/* Hero Carousel - Altura alterada para 800px */}
       <div className="w-full mb-8 animate-fade-in-up pt-20">
         <div 
           className="relative overflow-hidden"
-          style={{ height: 'calc(100vh - 80px)' }}
+          style={{ height: '800px' }}
         >
           {/* Slides Container */}
           <div 
@@ -210,7 +181,7 @@ function Dashboard() {
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">
-              <AnimatedCounter end={getTotalTrainings()} />
+              {getTotalTrainings()}
             </h3>
             <p className="text-gray-400">Treinos Disponíveis</p>
           </div>
@@ -219,9 +190,7 @@ function Dashboard() {
             <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-full mb-4">
               <Award className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">
-              <AnimatedCounter end={12} />
-            </h3>
+            <h3 className="text-2xl font-bold text-white mb-2">12</h3>
             <p className="text-gray-400">Treinos Concluídos</p>
           </div>
           
@@ -229,9 +198,7 @@ function Dashboard() {
             <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mb-4">
               <Zap className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">
-              <AnimatedCounter end={2847} />
-            </h3>
+            <h3 className="text-2xl font-bold text-white mb-2">2,847</h3>
             <p className="text-gray-400">Calorias Queimadas</p>
           </div>
 
@@ -239,9 +206,7 @@ function Dashboard() {
             <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4">
               <Clock className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">
-              <AnimatedCounter end={48} suffix="h" />
-            </h3>
+            <h3 className="text-2xl font-bold text-white mb-2">48h</h3>
             <p className="text-gray-400">Tempo Total</p>
           </div>
         </div>
@@ -252,10 +217,13 @@ function Dashboard() {
             {message}
           </div>
         )}
+        
         {/* Dynamic Sections */}
         {allSections.map((section, sectionIndex) => (
           <div key={section.id} className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">{section.title}</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              {section.title === "CANAIS DE SUPORTE" ? "CRONOGRAMAS SEMANAIS" : section.title}
+            </h2>
             {section.description && (
               <p className="text-gray-400 mb-6">{section.description}</p>
             )}
@@ -267,7 +235,7 @@ function Dashboard() {
                     <div
                       key={training.id}
                       className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex-shrink-0 w-72 md:w-auto flex flex-col aspect-[3/4]"
-                      onClick={() => navigate(`/trainings/${training.id}`)} // Redireciona para a página de detalhes do programa
+                      onClick={() => navigate(`/trainings/${training.id}`)}
                     >
                       <div className="relative flex-1">
                         <img 
@@ -318,11 +286,3 @@ function Dashboard() {
 }
 
 export default Dashboard;
-
-
-
-
-
-
-
-
