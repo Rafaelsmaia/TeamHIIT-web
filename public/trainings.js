@@ -11,41 +11,41 @@ window.trainingsData = {
           duration: "30-40 min",
           level: "Iniciante",
           categories: ["Guia"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5455.JPG",
+          imageUrl: "CAPAS TEAM HIIT/COMECE AQUI.png",
           youtubeId: "f7KNh2jRf5I"
         },
         {
           id: "canais-suporte-card",
-          title: "CANAIS DE SUPORTE",
+          title: "SUPORTE",
           duration: "24h",
           level: "Todos",
           categories: ["Suporte"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5455.JPG",
+          imageUrl: "CAPAS TEAM HIIT/SUPORTE.png",
           externalUrl: "https://wa.me/5511999999999"
         }
       ]
     },
     {
-      id: "canais-suporte",
-      title: "CANAIS DE SUPORTE",
-      description: "Canais de comunicação e suporte da comunidade Team HIIT",
+      id: "cronogramas-semanais",
+      title: "CRONOGRAMAS SEMANAIS",
+      description: "Cronogramas organizados para sua semana de treinos",
       trainings: [
         {
-          id: "whatsapp-suporte",
-          title: "WHATSAPP SUPORTE",
+          id: "crono-teamhiit",
+          title: "CRONOGRAMA TEAM HIIT",
           duration: "24h",
           level: "Todos",
-          categories: ["Suporte"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5455.JPG",
+          categories: ["Cronograma"],
+          imageUrl: "CAPAS TEAM HIIT/CRONO-TEAMHIIT.png",
           externalUrl: "https://wa.me/5511999999999"
         },
         {
-          id: "telegram-comunidade",
-          title: "TELEGRAM COMUNIDADE",
+          id: "crono-youtube",
+          title: "CRONOGRAMA YOUTUBE",
           duration: "24h",
           level: "Todos",
-          categories: ["Comunidade"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_4824.JPG",
+          categories: ["Cronograma"],
+          imageUrl: "CAPAS TEAM HIIT/CRONO-YOUTUBE.png",
           externalUrl: "https://t.me/teamhiit"
         }
       ]
@@ -61,7 +61,7 @@ window.trainingsData = {
           duration: "9 módulos",
           level: "Intermediário",
           categories: ["Especial"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5455.JPG",
+          imageUrl: "CAPAS TEAM HIIT/PROJETO VERÃO.JPG",
           modules: [
             {
               title: "Módulo 1",
@@ -132,7 +132,7 @@ window.trainingsData = {
           duration: "",
           level: "",
           categories: ["Desafio"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_6838.JPG",
+          imageUrl: "CAPAS TEAM HIIT/DESAFIO SUPER INTENSO.JPG",
           modules: [
             { title: "Segunda", videoUrl: "https://youtu.be/KuaeMLiUdpY" },
             { title: "Terça", videoUrl: "https://youtu.be/vxJppGl90cg" },
@@ -183,11 +183,11 @@ window.trainingsData = {
       trainings: [
         {
           id: "projeto-sessenta-dias",
-          title: "PROJETO SESSENTA DIAS",
+          title: "PROJETO 60D",
           duration: "",
           level: "",
           categories: ["Principal"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_4824.JPG",
+          imageUrl: "CAPAS TEAM HIIT/PROJETO 60D.JPG",
           programId: "power-combat"
         },
         {
@@ -196,7 +196,7 @@ window.trainingsData = {
           duration: "",
           level: "",
           categories: ["Principal"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_4995.JPG",
+          imageUrl: "CAPAS TEAM HIIT/COM HALTERES.JPG",
           programId: "power-combat"
         },
         {
@@ -205,7 +205,7 @@ window.trainingsData = {
           duration: "",
           level: "",
           categories: ["Principal"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_4828.JPG",
+          imageUrl: "CAPAS TEAM HIIT/VOCÊ ATLETA.JPG",
           programId: "power-combat"
         }
       ]
@@ -217,29 +217,29 @@ window.trainingsData = {
       trainings: [
         {
           id: "treino-equipamentos-1",
-          title: "TREINO COM EQUIPAMENTOS 1",
+          title: "IN SHAPE - FULL BODY",
           duration: "45 min",
           level: "Intermediário",
           categories: ["Equipamentos"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5455.JPG",
+          imageUrl: "CAPAS TEAM HIIT/IN SHAPE - FULL BODY.png",
           programId: "equipamentos-1"
         },
         {
           id: "treino-equipamentos-2",
-          title: "TREINO COM EQUIPAMENTOS 2",
+          title: "IN SHAPE - PERNAS E GLÚTEOS",
           duration: "50 min",
           level: "Avançado",
           categories: ["Equipamentos"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_4824.JPG",
+          imageUrl: "CAPAS TEAM HIIT/IN SHAPE - PERNAS E GLÚTEOS.png",
           programId: "equipamentos-2"
         },
         {
           id: "treino-equipamentos-3",
-          title: "TREINO COM EQUIPAMENTOS 3",
+          title: "IN SHAPE - SUPERIORES",
           duration: "40 min",
           level: "Iniciante",
           categories: ["Equipamentos"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_4995.JPG",
+          imageUrl: "CAPAS TEAM HIIT/IN SHAPE - SUPERIORES.png",
           programId: "equipamentos-3"
         }
       ]
@@ -251,29 +251,29 @@ window.trainingsData = {
       trainings: [
         {
           id: "programa-adaptado-1",
-          title: "PROGRAMA ADAPTADO 1",
+          title: "INICIANTES",
           duration: "30 min",
           level: "Adaptado",
           categories: ["Adaptado"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5255.JPG",
+          imageUrl: "CAPAS TEAM HIIT/INICIANTES.JPG",
           programId: "adaptado-1"
         },
         {
           id: "programa-adaptado-2",
-          title: "PROGRAMA ADAPTADO 2",
+          title: "SEM IMPACTO",
           duration: "35 min",
           level: "Adaptado",
           categories: ["Adaptado"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5256.JPG",
+          imageUrl: "CAPAS TEAM HIIT/SEM IMPACTO.JPG",
           programId: "adaptado-2"
         },
         {
           id: "programa-adaptado-3",
-          title: "PROGRAMA ADAPTADO 3",
+          title: "TODO EM PÉ",
           duration: "25 min",
           level: "Adaptado",
           categories: ["Adaptado"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5258.JPG",
+          imageUrl: "CAPAS TEAM HIIT/TODO EM PÉ.JPG",
           programId: "adaptado-3"
         }
       ]
@@ -289,7 +289,7 @@ window.trainingsData = {
           duration: "20 min",
           level: "Todos os níveis",
           categories: ["Específico"],
-          imageUrl: "CAPAS TEAM HIIT/ABS.JPG",
+          imageUrl: "CAPAS TEAM HIIT/ABS.jpg",
           programId: "abs"
         },
         {
@@ -298,7 +298,7 @@ window.trainingsData = {
           duration: "25 min",
           level: "Todos os níveis",
           categories: ["Específico"],
-          imageUrl: "CAPAS TEAM HIIT/PG.JPG",
+          imageUrl: "CAPAS TEAM HIIT/PERNAS E GLÚTEOS.jpg",
           programId: "pernas-gluteos"
         }
       ]
@@ -310,20 +310,20 @@ window.trainingsData = {
       trainings: [
         {
           id: "aquecimento-especial",
-          title: "AQUECIMENTO ESPECIAL",
+          title: "BÔNUS ESPECIAL 1",
           duration: "10 min",
           level: "Todos os níveis",
           categories: ["Bônus"],
-          imageUrl: "CAPAS TEAM HIIT/aque.JPG",
+          imageUrl: "CAPAS TEAM HIIT/COMECE AQUI.png",
           programId: "aquecimento"
         },
         {
           id: "bonus-exclusivo",
-          title: "BÔNUS EXCLUSIVO",
+          title: "BÔNUS ESPECIAL 2",
           duration: "15 min",
           level: "Todos os níveis",
           categories: ["Bônus"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_5455.JPG",
+          imageUrl: "CAPAS TEAM HIIT/SUPORTE.png",
           programId: "bonus-exclusivo"
         }
       ]
@@ -335,11 +335,11 @@ window.trainingsData = {
       trainings: [
         {
           id: "team-fit-programa",
-          title: "TEAM FIT",
+          title: "CONSULTAS INDIVIDUAIS",
           duration: "60 min",
           level: "Todos os níveis",
           categories: ["Team Fit"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_4828.JPG",
+          imageUrl: "CAPAS TEAM HIIT/CONSULTAS INDIVIDUAIS.png",
           programId: "team-fit"
         }
       ]

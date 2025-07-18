@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Play, Clock, Target, Zap, Filter, Grid3X3, List, TrendingUp, Users, Award, Bookmark } from 'lucide-react';
 import Header from '../components/ui/Header.jsx';
 import { useToast } from '../components/ui/Toast.jsx';
+import LazyImage from '../components/LazyImage.jsx';
 
 function Dashboard() {
   const [allSections, setAllSections] = useState([]);
@@ -21,7 +22,6 @@ function Dashboard() {
         script.onload = () => {
           if (window.trainingsData && window.trainingsData.sections) {
             setAllSections(window.trainingsData.sections);
-            // Removido: addToast("Treinos carregados com sucesso!", "success");
             setLoading(false);
           } else {
             throw new Error('Dados dos treinos não encontrados');
@@ -42,6 +42,14 @@ function Dashboard() {
     fetchTrainings();
   }, []);
 
+  // Auto-advance carousel
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % 2);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   const getCategoryColor = (category) => {
     switch (category.toLowerCase()) {
       case 'força':
@@ -59,36 +67,25 @@ function Dashboard() {
     }
   };
 
-  // Slides para o carousel - Removidas as mensagens dos banners
+  // Slides otimizados para o carousel
   const carouselSlides = [
     <div key="slide1" className="relative overflow-hidden" style={{ height: '800px' }}>
-      <img 
-        src="/renan-slide.png" 
-        alt="Team HIIT - Renan Gonçalves" 
-        className="w-full h-full object-cover object-center"
-        style={{ objectPosition: 'center center' }}
+      <LazyImage
+        src="/BANNER PRINCIPAL/TREINOS-GRATIS.png"
+        alt="Team HIIT - Treinos Grátis"
+        className="w-full h-full"
+        style={{ objectFit: 'cover', objectPosition: 'center center' }}
       />
       <div className="absolute inset-0 bg-black/10"></div>
     </div>,
     <div key="slide2" className="relative overflow-hidden" style={{ height: '800px' }}>
-      <img 
-        src="/renan-slide.png" 
-        alt="Team HIIT - Banner 2" 
-        className="w-full h-full object-cover object-center"
-        style={{ objectPosition: 'center center' }}
+      <LazyImage
+        src="/BANNER PRINCIPAL/Indique-um-amigo.png"
+        alt="Team HIIT - Indique um Amigo"
+        className="w-full h-full"
+        style={{ objectFit: 'cover', objectPosition: 'center center' }}
       />
-      <div className="absolute inset-0 bg-black/20"></div>
-      {/* Removido: div com mensagem "TREINOS PERSONALIZADOS" */}
-    </div>,
-    <div key="slide3" className="relative overflow-hidden" style={{ height: '800px' }}>
-      <img 
-        src="/renan-slide.png" 
-        alt="Team HIIT - Banner 3" 
-        className="w-full h-full object-cover object-center"
-        style={{ objectPosition: 'center center' }}
-      />
-      <div className="absolute inset-0 bg-black/20"></div>
-      {/* Removido: div com mensagem "RESULTADOS GARANTIDOS" */}
+      <div className="absolute inset-0 bg-black/10"></div>
     </div>
   ];
 
@@ -104,10 +101,10 @@ function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, index) => (
               <div key={index} className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="skeleton h-48 rounded-lg mb-4"></div>
-                <div className="skeleton h-6 rounded mb-2"></div>
-                <div className="skeleton h-4 rounded mb-4"></div>
-                <div className="skeleton h-10 rounded"></div>
+                <div className="skeleton h-48 rounded-lg mb-4 bg-gray-200 animate-pulse"></div>
+                <div className="skeleton h-6 rounded mb-2 bg-gray-200 animate-pulse"></div>
+                <div className="skeleton h-4 rounded mb-4 bg-gray-200 animate-pulse"></div>
+                <div className="skeleton h-10 rounded bg-gray-200 animate-pulse"></div>
               </div>
             ))}
           </div>
@@ -121,7 +118,7 @@ function Dashboard() {
       <Header />
       <ToastContainer />
       
-      {/* Hero Carousel - Altura alterada para 800px */}
+      {/* Hero Carousel Otimizado */}
       <div className="w-full mb-8 animate-fade-in-up pt-20">
         <div 
           className="relative overflow-hidden"
@@ -218,7 +215,7 @@ function Dashboard() {
           </div>
         )}
         
-        {/* Dynamic Sections */}
+        {/* Dynamic Sections com Lazy Loading */}
         {allSections.map((section, sectionIndex) => (
           <div key={section.id} className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">
@@ -238,10 +235,11 @@ function Dashboard() {
                       onClick={() => navigate(`/trainings/${training.id}`)}
                     >
                       <div className="relative flex-1">
-                        <img 
-                          src={`/${training.imageUrl}`} 
-                          alt={training.title} 
-                          className="w-full h-full object-cover"
+                        <LazyImage
+                          src={`/${training.imageUrl}`}
+                          alt={training.title}
+                          className="w-full h-full"
+                          style={{ objectFit: 'cover' }}
                         />
                       </div>
                       <div className="p-4 bg-white">

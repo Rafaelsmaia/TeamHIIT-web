@@ -1,15 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Clock, User, Star, Bookmark, Share2, Play, Send, MessageCircle, Lock, Crown } from 'lucide-react';
+import { ArrowLeft, Clock, User, Star, Bookmark, Share2, Play, Send, MessageCircle, Lock, Crown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import Header from '../components/ui/Header.jsx';
+
+// Helper function to get YouTube video ID
+const getYouTubeVideoId = (url) => {
+  const regExp = /^.*(?:youtu.be\/|v\/|e\/|embed\/|watch\?v=|youtube.com\/user\/[^\/]+\/|youtube.com\/\?v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[1].length === 11) ? match[1] : null;
+};
 
 function VideoPlayer() {
   const { moduleId, videoId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [videoData, setVideoData] = useState(null);
+  const [program, setProgram] = useState(null);
+  const [training, setTraining] = useState(null);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [allVideos, setAllVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [isSubscriber, setIsSubscriber] = useState(false);
@@ -17,6 +28,7 @@ function VideoPlayer() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const playlistRef = useRef(null);
   
   const auth = getAuth();
   const db = getFirestore();
@@ -51,47 +63,117 @@ function VideoPlayer() {
   }, [auth, db]);
 
   useEffect(() => {
-    // Busca dados do vídeo baseado nos parâmetros ou state
-    const loadVideoData = () => {
-      if (location.state) {
-        setVideoData(location.state);
-        setLoading(false);
-      } else {
-        // Buscar dados do trainings.js baseado nos IDs
-        const script = document.createElement('script');
-        script.src = '/trainings.js';
-        script.onload = () => {
-          if (window.trainingsData) {
-            // Encontrar o vídeo específico
-            const projetoVerao = window.trainingsData.sections
-              .find(s => s.id === 'programas-especiais')
-              ?.trainings.find(t => t.id === 'projeto-verao');
-            
-            if (projetoVerao && projetoVerao.modules) {
-              const module = projetoVerao.modules.find(m => m.title === `Módulo ${moduleId}`);
-              const video = module?.videos?.[0];
-              
-              if (video) {
+    const fetchTrainingData = () => {
+      // Buscar dados do programa baseado no ID da URL
+      const trainingId = location.pathname.split('/')[2]; // Pega o ID do training da URL
+      
+      if (window.trainingsData && window.trainingsData.sections) {
+        let foundTraining = null;
+        let foundProgram = null;
+
+        for (const section of window.trainingsData.sections) {
+          foundTraining = section.trainings.find(t => t.id === trainingId);
+          if (foundTraining) {
+            // Criar estrutura do programa
+            if (foundTraining.modules && foundTraining.modules.length > 0) {
+              foundProgram = {
+                id: foundTraining.id,
+                title: foundTraining.title,
+                description: foundTraining.description || `Programa completo de ${foundTraining.title}`,
+                instructor: "Renan Gonçalves",
+                duration: foundTraining.duration || "Vários módulos",
+                level: foundTraining.level || "Todos os níveis",
+                image: foundTraining.imageUrl,
+                sections: [
+                  {
+                    id: "treinos",
+                    title: "Treinos",
+                    description: "Programa completo de treinos",
+                    modules: foundTraining.modules.map((module, index) => {
+                      if (module.videoUrl) {
+                        return {
+                          id: `modulo-${index + 1}`,
+                          title: module.title,
+                          description: `Treino ${module.title}`,
+                          videoUrl: module.videoUrl,
+                          youtubeId: getYouTubeVideoId(module.videoUrl),
+                          duration: "30-40 min",
+                          type: "Treino"
+                        };
+                      } else if (module.youtubeId) {
+                        return {
+                          id: `modulo-${index + 1}`,
+                          title: module.title,
+                          description: `Treino ${module.title}`,
+                          videoUrl: `https://youtu.be/${module.youtubeId}`,
+                          youtubeId: module.youtubeId,
+                          duration: "30-40 min",
+                          type: "Treino"
+                        };
+                      }
+                      return {
+                        id: `modulo-${index + 1}`,
+                        title: module.title,
+                        description: `Treino ${module.title}`,
+                        videoUrl: null,
+                        youtubeId: null,
+                        duration: "30-40 min",
+                        type: "Treino"
+                      };
+                    })
+                  }
+                ]
+              };
+
+              // Criar lista de todos os vídeos para a playlist
+              const videos = foundProgram.sections[0].modules;
+              setAllVideos(videos);
+
+              // Encontrar o vídeo atual baseado no moduleId ou videoId
+              let currentIndex = 0;
+              if (moduleId) {
+                currentIndex = videos.findIndex(v => v.id === moduleId || v.youtubeId === videoId);
+                if (currentIndex === -1) currentIndex = 0;
+              }
+              setCurrentVideoIndex(currentIndex);
+
+              // Definir dados do vídeo atual
+              const currentVideo = videos[currentIndex];
+              if (currentVideo) {
                 setVideoData({
-                  title: `${module.title} - ${video.title}`,
-                  youtubeId: video.youtubeId,
-                  description: `Vídeo do ${module.title} do Projeto Verão`,
-                  duration: '30-40 min',
-                  level: 'Intermediário',
-                  instructor: 'Team HIIT',
-                  category: 'Especial'
+                  title: currentVideo.title,
+                  youtubeId: currentVideo.youtubeId,
+                  description: currentVideo.description,
+                  duration: currentVideo.duration,
+                  level: foundProgram.level,
+                  instructor: foundProgram.instructor,
+                  category: foundTraining.categories?.[0] || 'Treino'
                 });
               }
             }
+
+            setTraining(foundTraining);
+            setProgram(foundProgram);
+            break;
           }
-          setLoading(false);
-        };
-        document.head.appendChild(script);
+        }
+        setLoading(false);
       }
     };
 
-    loadVideoData();
-  }, [moduleId, videoId, location.state]);
+    if (!window.trainingsData) {
+      const script = document.createElement('script');
+      script.src = '/trainings.js';
+      script.onload = fetchTrainingData;
+      script.onerror = () => {
+        console.error('Erro ao carregar arquivo de treinos');
+        setLoading(false);
+      };
+      document.head.appendChild(script);
+    } else {
+      fetchTrainingData();
+    }
+  }, [moduleId, videoId, location.pathname]);
 
   useEffect(() => {
     // Load comments for this video (apenas se for assinante)
@@ -116,6 +198,40 @@ function VideoPlayer() {
       return () => unsubscribe();
     }
   }, [videoData?.youtubeId, db, isSubscriber]);
+
+  const handleVideoSelect = (video, index) => {
+    if (!isSubscriber) {
+      const shouldUpgrade = window.confirm(
+        'Este conteúdo é exclusivo para assinantes do Team HIIT.\n\nGostaria de se tornar um assinante para acessar todo o conteúdo?'
+      );
+      
+      if (shouldUpgrade) {
+        window.open('https://wa.me/5511999999999?text=Olá! Gostaria de me tornar assinante do Team HIIT', '_blank');
+      }
+      return;
+    }
+
+    setCurrentVideoIndex(index);
+    setVideoData({
+      title: video.title,
+      youtubeId: video.youtubeId,
+      description: video.description,
+      duration: video.duration,
+      level: program?.level || 'Todos os níveis',
+      instructor: program?.instructor || 'Team HIIT',
+      category: training?.categories?.[0] || 'Treino'
+    });
+
+    // Atualizar URL
+    navigate(`/video/${video.id}/${video.youtubeId}`, { replace: true });
+  };
+
+  const scrollPlaylist = (direction) => {
+    if (playlistRef.current) {
+      const scrollAmount = 300;
+      playlistRef.current.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
@@ -169,36 +285,33 @@ function VideoPlayer() {
   };
 
   const handleSubscriptionUpgrade = () => {
-    // Redirecionar para página de assinatura ou contato
     window.open('https://wa.me/5511999999999?text=Olá! Gostaria de me tornar assinante do Team HIIT', '_blank');
   };
 
   if (loading || checkingSubscription) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
         <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="bg-gray-300 h-96 rounded-lg mb-6"></div>
-            <div className="bg-gray-300 h-8 rounded mb-4"></div>
-            <div className="bg-gray-300 h-4 rounded mb-2"></div>
-            <div className="bg-gray-300 h-4 rounded w-3/4"></div>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Carregando vídeo...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!videoData) {
+  if (!videoData || !program) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-6 py-8 pt-24">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Vídeo não encontrado</h2>
-            <button 
+            <h1 className="text-2xl font-bold text-white mb-4">Vídeo não encontrado</h1>
+            <button
               onClick={() => navigate('/dashboard')}
-              className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors"
             >
               Voltar ao Dashboard
             </button>
@@ -209,72 +322,81 @@ function VideoPlayer() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
       <Header />
       
-      {/* Hero Section com gradiente */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-8">
-        <div className="container mx-auto px-6">
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center text-white/80 hover:text-white mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Voltar
-          </button>
-          
-          <div className="flex items-center mb-4">
-            <Play className="w-6 h-6 mr-3" />
-            <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{videoData.category}</span>
-            {isSubscriber && (
-              <span className="bg-yellow-500/20 px-3 py-1 rounded-full text-sm ml-2 flex items-center">
-                <Crown className="w-4 h-4 mr-1" />
-                Assinante
+      {/* Banner do Programa */}
+      <div className="w-full relative" style={{ height: '50vh' }}>
+        <img 
+          src={`/${program.image}`}
+          alt={program.title} 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+          <div className="text-white text-center p-4">
+            <h1 className="text-4xl md:text-6xl font-bold mb-2">{program.title}</h1>
+            <p className="text-lg md:text-xl opacity-90 max-w-3xl mx-auto">{program.description}</p>
+            <div className="mt-4 flex justify-center space-x-4">
+              <span className="bg-orange-500 text-white px-4 py-2 rounded-full text-sm">
+                <User className="w-4 h-4 inline mr-1" />
+                {program.instructor}
               </span>
-            )}
-          </div>
-          
-          <h1 className="text-4xl font-bold mb-4">{videoData.title}</h1>
-          <p className="text-xl text-white/90 mb-6">{videoData.description}</p>
-          
-          <div className="flex items-center space-x-6 text-white/80">
-            <div className="flex items-center">
-              <Clock className="w-5 h-5 mr-2" />
-              <span>{videoData.duration}</span>
-            </div>
-            <div className="flex items-center">
-              <User className="w-5 h-5 mr-2" />
-              <span>Instrutor: {videoData.instructor}</span>
-            </div>
-            <div className="flex items-center">
-              <Star className="w-5 h-5 mr-2" />
-              <span>{videoData.level}</span>
+              <span className="bg-gray-700 text-white px-4 py-2 rounded-full text-sm">
+                <Clock className="w-4 h-4 inline mr-1" />
+                {program.duration}
+              </span>
+              {isSubscriber && (
+                <span className="bg-yellow-500 text-black px-4 py-2 rounded-full text-sm flex items-center">
+                  <Crown className="w-4 h-4 mr-1" />
+                  Assinante
+                </span>
+              )}
             </div>
           </div>
-          
-          {isSubscriber && (
-            <div className="flex items-center space-x-4 mt-6">
-              <button className="flex items-center bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
-                <Bookmark className="w-5 h-5 mr-2" />
-                Salvar
-              </button>
-              <button className="flex items-center bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
-                <Share2 className="w-5 h-5 mr-2" />
-                Compartilhar
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="container mx-auto px-6 py-8">
+        {/* Botão Voltar */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Voltar ao Dashboard
+          </button>
+        </div>
+
+        {/* Call to Action para não-assinantes */}
+        {!isSubscriber && (
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl shadow-lg p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Crown className="w-8 h-8 mr-4" />
+                <div>
+                  <h3 className="text-xl font-bold">Conteúdo Exclusivo para Assinantes</h3>
+                  <p className="text-white/90">
+                    Torne-se assinante para acessar todos os vídeos e treinos do Team HIIT!
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleSubscriptionUpgrade}
+                className="bg-white text-orange-500 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Assinar Agora
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Video Section */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <h3 className="text-xl font-bold p-6 border-b border-gray-200">Vídeo do Treino</h3>
+            <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+              <h3 className="text-xl font-bold p-6 border-b border-gray-700 text-white">Vídeo do Treino</h3>
               <div className="p-6">
                 {isSubscriber ? (
                   <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
@@ -311,17 +433,17 @@ function VideoPlayer() {
 
             {/* Comments Section - Apenas para assinantes */}
             {isSubscriber && (
-              <div className="bg-white rounded-xl shadow-lg mt-6">
-                <div className="p-6 border-b border-gray-200">
+              <div className="bg-gray-800 rounded-xl shadow-lg mt-6">
+                <div className="p-6 border-b border-gray-700">
                   <div className="flex items-center">
-                    <MessageCircle className="w-6 h-6 mr-3 text-gray-600" />
-                    <h3 className="text-xl font-bold">Comentários ({comments.length})</h3>
+                    <MessageCircle className="w-6 h-6 mr-3 text-gray-400" />
+                    <h3 className="text-xl font-bold text-white">Comentários ({comments.length})</h3>
                   </div>
                 </div>
 
                 {/* Add Comment Form */}
                 {user ? (
-                  <div className="p-6 border-b border-gray-200">
+                  <div className="p-6 border-b border-gray-700">
                     <form onSubmit={handleSubmitComment} className="flex space-x-4">
                       <div className="flex-shrink-0">
                         <img
@@ -335,14 +457,14 @@ function VideoPlayer() {
                           value={newComment}
                           onChange={(e) => setNewComment(e.target.value)}
                           placeholder="Adicione um comentário..."
-                          className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          className="w-full p-3 border border-gray-600 bg-gray-700 text-white rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                           rows="3"
                         />
                         <div className="flex justify-end mt-3">
                           <button
                             type="submit"
                             disabled={!newComment.trim() || submittingComment}
-                            className="flex items-center bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
+                            className="flex items-center bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
                           >
                             <Send className="w-4 h-4 mr-2" />
                             {submittingComment ? 'Enviando...' : 'Comentar'}
@@ -352,8 +474,8 @@ function VideoPlayer() {
                     </form>
                   </div>
                 ) : (
-                  <div className="p-6 border-b border-gray-200 text-center">
-                    <p className="text-gray-600 mb-4">Faça login para comentar</p>
+                  <div className="p-6 border-b border-gray-700 text-center">
+                    <p className="text-gray-400 mb-4">Faça login para comentar</p>
                     <button
                       onClick={() => navigate('/auth')}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors"
@@ -378,10 +500,10 @@ function VideoPlayer() {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
-                              <span className="font-semibold text-gray-800">{comment.userName}</span>
-                              <span className="text-sm text-gray-500">{formatDate(comment.createdAt)}</span>
+                              <span className="font-semibold text-white">{comment.userName}</span>
+                              <span className="text-sm text-gray-400">{formatDate(comment.createdAt)}</span>
                             </div>
-                            <p className="text-gray-700 leading-relaxed">{comment.text}</p>
+                            <p className="text-gray-300 leading-relaxed">{comment.text}</p>
                           </div>
                         </div>
                       ))}
@@ -389,7 +511,7 @@ function VideoPlayer() {
                   ) : (
                     <div className="text-center py-8">
                       <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">Seja o primeiro a comentar!</p>
+                      <p className="text-gray-400">Seja o primeiro a comentar!</p>
                     </div>
                   )}
                 </div>
@@ -397,38 +519,122 @@ function VideoPlayer() {
             )}
           </div>
 
-          {/* Info Section */}
+          {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold mb-6">Informações do Treino</h3>
+            {/* Próximos Treinos */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+              <h3 className="text-xl font-bold mb-6 text-white">PRÓXIMOS TREINOS</h3>
+              
+              <div className="relative">
+                {allVideos.length > 3 && (
+                  <>
+                    <button
+                      onClick={() => scrollPlaylist(-1)}
+                      className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-1 rounded-full transition-all"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => scrollPlaylist(1)}
+                      className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-1 rounded-full transition-all"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+                
+                <div 
+                  ref={playlistRef}
+                  className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide"
+                >
+                  {allVideos.map((video, index) => {
+                    const thumbnailUrl = video.youtubeId ? `https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg` : null;
+                    const isCurrentVideo = index === currentVideoIndex;
+
+                    return (
+                      <div 
+                        key={video.id} 
+                        className={`flex items-center p-3 rounded-lg cursor-pointer transition-all relative ${
+                          isCurrentVideo 
+                            ? 'bg-orange-500/20 border border-orange-500' 
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                        onClick={() => handleVideoSelect(video, index)}
+                      >
+                        {/* Overlay de cadeado para não-assinantes */}
+                        {!isSubscriber && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 rounded-lg">
+                            <Lock className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                        
+                        <div className="flex-shrink-0 relative w-16 h-12 mr-3">
+                          {thumbnailUrl ? (
+                            <img 
+                              src={thumbnailUrl} 
+                              alt={video.title} 
+                              className="w-full h-full object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-600 flex items-center justify-center rounded">
+                              <Play className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          {isCurrentVideo && (
+                            <div className="absolute inset-0 bg-orange-500/30 flex items-center justify-center rounded">
+                              <Play className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`font-semibold text-sm truncate ${
+                            isCurrentVideo ? 'text-orange-400' : 'text-white'
+                          }`}>
+                            {video.title}
+                          </h4>
+                          <div className="flex items-center mt-1">
+                            <Clock className="w-3 h-3 text-gray-400 mr-1" />
+                            <span className="text-gray-400 text-xs">{video.duration}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Info Section */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold mb-6 text-white">Informações do Treino</h3>
               
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div className="flex items-center text-gray-600">
+                <div className="flex items-center justify-between py-3 border-b border-gray-700">
+                  <div className="flex items-center text-gray-400">
                     <Clock className="w-5 h-5 mr-3" />
                     <span>Duração</span>
                   </div>
-                  <span className="font-semibold">{videoData.duration}</span>
+                  <span className="font-semibold text-white">{videoData.duration}</span>
                 </div>
                 
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div className="flex items-center text-gray-600">
+                <div className="flex items-center justify-between py-3 border-b border-gray-700">
+                  <div className="flex items-center text-gray-400">
                     <Star className="w-5 h-5 mr-3" />
                     <span>Dificuldade</span>
                   </div>
-                  <span className="font-semibold">{videoData.level}</span>
+                  <span className="font-semibold text-white">{videoData.level}</span>
                 </div>
                 
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                  <div className="flex items-center text-gray-600">
+                <div className="flex items-center justify-between py-3 border-b border-gray-700">
+                  <div className="flex items-center text-gray-400">
                     <User className="w-5 h-5 mr-3" />
                     <span>Categoria</span>
                   </div>
-                  <span className="font-semibold">{videoData.category}</span>
+                  <span className="font-semibold text-white">{videoData.category}</span>
                 </div>
                 
                 <div className="flex items-center justify-between py-3">
-                  <div className="flex items-center text-gray-600">
+                  <div className="flex items-center text-gray-400">
                     <Star className="w-5 h-5 mr-3" />
                     <span>Avaliação</span>
                   </div>
@@ -436,23 +642,36 @@ function VideoPlayer() {
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
                     ))}
-                    <span className="ml-2 text-sm text-gray-600">(4.8)</span>
+                    <span className="ml-2 text-sm text-gray-400">(4.8)</span>
                   </div>
                 </div>
               </div>
+
+              {isSubscriber && (
+                <div className="flex items-center space-x-4 mt-6">
+                  <button className="flex items-center bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors text-white">
+                    <Bookmark className="w-5 h-5 mr-2" />
+                    Salvar
+                  </button>
+                  <button className="flex items-center bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors text-white">
+                    <Share2 className="w-5 h-5 mr-2" />
+                    Compartilhar
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Equipamentos */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
-              <h3 className="text-xl font-bold mb-4">Equipamentos</h3>
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 mt-6">
+              <h3 className="text-xl font-bold mb-4 text-white">Equipamentos</h3>
               <div className="space-y-2">
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-                  <span>Peso corporal</span>
+                  <span className="text-gray-300">Peso corporal</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-                  <span>Tapete de exercício</span>
+                  <span className="text-gray-300">Tapete de exercício</span>
                 </div>
               </div>
             </div>
