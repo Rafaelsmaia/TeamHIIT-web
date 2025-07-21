@@ -1,13 +1,111 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Team HIIT - Transforme seu corpo</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#FF4500" />
+    <meta name="background-color" content="#1a1a1a" />
+    <meta name="description" content="Plataforma de treinos HIIT personalizados com acesso exclusivo para membros" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Team HIIT" />
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#FF4500" />
+    <meta name="msapplication-TileImage" content="/icon-192x192.png" />
+    
+    <!-- SEO Meta Tags -->
+    <meta property="og:title" content="Team HIIT - Treinos Personalizados" />
+    <meta property="og:description" content="Plataforma de treinos HIIT personalizados com acesso exclusivo para membros" />
+    <meta property="og:image" content="/icon-512x512.png" />
+    <meta property="og:type" content="website" />
+    
+    <title>Team HIIT - Treinos Personalizados</title>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #FF4500; color: white; padding: 16px; text-align: center; z-index: 1000;">
+      <p style="margin: 0 0 8px 0;">Instale o Team HIIT na sua tela inicial!</p>
+      <button id="pwa-install-btn" style="background: white; color: #FF4500; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer;">
+        Instalar App
+      </button>
+      <button id="pwa-dismiss-btn" style="background: transparent; color: white; border: 1px solid white; padding: 8px 16px; border-radius: 4px; margin-left: 8px; cursor: pointer;">
+        Agora Não
+      </button>
+    </div>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- PWA Installation Script -->
+    <script>
+      let deferredPrompt;
+      const installBanner = document.getElementById('pwa-install-banner');
+      const installBtn = document.getElementById('pwa-install-btn');
+      const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+      // Detectar se PWA pode ser instalado
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Mostrar banner de instalação após 3 segundos
+        setTimeout(() => {
+          if (!window.matchMedia('(display-mode: standalone)').matches) {
+            installBanner.style.display = 'block';
+          }
+        }, 3000);
+      });
+
+      // Instalar PWA
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`PWA installation: ${outcome}`);
+          deferredPrompt = null;
+          installBanner.style.display = 'none';
+        }
+      });
+
+      // Dispensar banner
+      dismissBtn.addEventListener('click', () => {
+        installBanner.style.display = 'none';
+      });
+
+      // Registrar Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registrado com sucesso:', registration.scope);
+            })
+            .catch((error) => {
+              console.log('Falha ao registrar SW:', error);
+            });
+        });
+      }
+
+      // Detectar se está rodando como PWA
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          console.log('Rodando como PWA');
+          document.body.classList.add('pwa-mode');
+        }
+      });
+    </script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
+import TrainingDetail from './pages/TrainingDetail.jsx';
 import VideoPlayer from './pages/VideoPlayer.jsx';
 import Community from './pages/Community.jsx';
 import Auth from './pages/Auth.jsx';
@@ -12,6 +13,7 @@ import { useToast } from './components/ui/Toast.jsx';
 import './App.css';
 import './styles/responsive.css';
 import './styles/animations.css';
+import './pwa-ios-fix.css';
 
 function PrivateRoute({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
@@ -41,8 +43,7 @@ function AppContent() {
       <Router>
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
-          {/* Rota unificada - ao clicar no card vai direto para o player mesclado */}
-          <Route path="/trainings/:id" element={<VideoPlayer />} />
+          <Route path="/trainings/:id" element={<TrainingDetail />} />
           <Route path="/video/:moduleId/:videoId" element={<VideoPlayer />} />
           <Route path="/video/:moduleId" element={<VideoPlayer />} />
           <Route path="/player" element={<VideoPlayer />} />
@@ -84,3 +85,4 @@ function App() {
 }
 
 export default App;
+
