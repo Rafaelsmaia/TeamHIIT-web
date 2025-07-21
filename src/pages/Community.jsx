@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from '../components/ui/Header.jsx';
-import { db } from '../firebaseConfig';
+import { db, storage } from '../firebaseConfig';
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc, increment, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { Send, ThumbsUp, MessageCircle, Smile, PlusCircle } from 'lucide-react';
+import { Send, ThumbsUp, MessageCircle, Smile, PlusCircle, Camera, Image, X, Heart, Share2, Bookmark, MoreHorizontal } from 'lucide-react';
 
 function Community() {
   const [activeTab, setActiveTab] = useState('feed');
@@ -14,9 +15,13 @@ function Community() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showComments, setShowComments] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
-  const [userInteractions, setUserInteractions] = useState({}); // Armazenar interações do usuário
+  const [userInteractions, setUserInteractions] = useState({});
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [uploadingPost, setUploadingPost] = useState(false);
+  const [imagePreview, setImagePreview] = useState([]);
+  const fileInputRef = useRef(null);
 
-  const emojis = ['👍', '❤️', '😂', '🔥', '😢', '🙏'];
+  const emojis = ['👍', '❤️', '😂', '🔥', '😢', '🙏', '💪', '🎯', '⚡', '🏆'];
   const auth = getAuth();
 
   useEffect(() => {
@@ -102,14 +107,71 @@ function Community() {
     fetchPosts();
   }, []);
 
+  // Função para selecionar imagens
+  const handleImageSelect = (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length + selectedImages.length > 4) {
+      alert('Você pode selecionar no máximo 4 imagens por post.');
+      return;
+    }
+
+    const newImages = files.filter(file => {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert(`A imagem ${file.name} é muito grande. Máximo 5MB por imagem.`);
+        return false;
+      }
+      return file.type.startsWith('image/');
+    });
+
+    setSelectedImages(prev => [...prev, ...newImages]);
+
+    // Criar previews
+    newImages.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(prev => [...prev, {
+          file,
+          url: e.target.result,
+          id: Date.now() + Math.random()
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Remover imagem selecionada
+  const removeImage = (index) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreview(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Upload de imagens para Firebase Storage
+  const uploadImages = async (images) => {
+    const uploadPromises = images.map(async (image) => {
+      const imageRef = ref(storage, `posts/${Date.now()}_${image.name}`);
+      const snapshot = await uploadBytes(imageRef, image);
+      return await getDownloadURL(snapshot.ref);
+    });
+    return await Promise.all(uploadPromises);
+  };
+
   const handleAddPost = async () => {
-    if (newPostContent.trim() === '') return;
+    if (newPostContent.trim() === '' && selectedImages.length === 0) {
+      alert('Adicione um texto ou pelo menos uma imagem para publicar.');
+      return;
+    }
     if (!currentUser) {
       alert('Você precisa estar logado para fazer uma postagem.');
       return;
     }
 
+    setUploadingPost(true);
     try {
+      let imageUrls = [];
+      if (selectedImages.length > 0) {
+        imageUrls = await uploadImages(selectedImages);
+      }
+
       await addDoc(collection(db, 'posts'), {
         content: newPostContent,
         author: currentUser.displayName || currentUser.email,
@@ -118,13 +180,20 @@ function Community() {
         timestamp: serverTimestamp(),
         likes: 0,
         comments: 0,
-        reactions: {}
+        reactions: {},
+        images: imageUrls,
+        type: imageUrls.length > 0 ? 'photo' : 'text'
       });
+      
       setNewPostContent('');
+      setSelectedImages([]);
+      setImagePreview([]);
       fetchPosts(); // Recarregar apenas quando adicionar novo post
     } catch (e) {
       console.error('Erro ao adicionar documento: ', e);
+      alert('Erro ao publicar post. Tente novamente.');
     }
+    setUploadingPost(false);
   };
 
   const handleLikePost = async (postId) => {
@@ -334,19 +403,19 @@ function Community() {
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
       <Header />
-      <div className="container mx-auto px-6 py-8 pt-20">
-        <h1 className="text-4xl font-bold text-white mb-8">Comunidade</h1>
+      <div className="container mx-auto px-4 md:px-6 py-8 pt-20 max-w-2xl">
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">Comunidade Team HIIT</h1>
 
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-700 mb-8">
           <button
-            className={`px-6 py-3 text-lg font-medium ${activeTab === 'feed' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 md:px-6 py-3 text-sm md:text-lg font-medium ${activeTab === 'feed' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-400 hover:text-white'}`}
             onClick={() => setActiveTab('feed')}
           >
             Feed
           </button>
           <button
-            className={`px-6 py-3 text-lg font-medium ${activeTab === 'announcements' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 md:px-6 py-3 text-sm md:text-lg font-medium ${activeTab === 'announcements' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-400 hover:text-white'}`}
             onClick={() => setActiveTab('announcements')}
           >
             Anúncios
@@ -357,30 +426,145 @@ function Community() {
         {activeTab === 'feed' && (
           <div className="space-y-6">
             {/* Post Creation Form */}
-            <div className="bg-gray-800 rounded-xl shadow-lg p-6">
-              <textarea
-                className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
-                rows="3"
-                placeholder={currentUser ? "O que você está pensando?" : "Faça login para postar..."}
-                value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
-                disabled={!currentUser}
-              ></textarea>
-              <button
-                className={`w-full font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200 ${currentUser ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 cursor-not-allowed'}`}
-                onClick={handleAddPost}
-                disabled={!currentUser}
-              >
-                <PlusCircle className="w-5 h-5" />
-                <span>Publicar</span>
-              </button>
+            <div className="bg-gray-800 rounded-xl shadow-lg p-4 md:p-6">
+              <div className="flex items-start space-x-3 mb-4">
+                {currentUser?.photoURL ? (
+                  <img src={currentUser.photoURL} alt="Your Avatar" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                    </svg>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <textarea
+                    className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                    rows="3"
+                    placeholder={currentUser ? "Compartilhe seus resultados, dicas ou motivação..." : "Faça login para postar..."}
+                    value={newPostContent}
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    disabled={!currentUser}
+                  ></textarea>
+                </div>
+              </div>
+
+              {/* Image Preview */}
+              {imagePreview.length > 0 && (
+                <div className="mb-4">
+                  <div className={`grid gap-2 ${imagePreview.length === 1 ? 'grid-cols-1' : imagePreview.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                    {imagePreview.map((preview, index) => (
+                      <div key={preview.id} className="relative group">
+                        <img 
+                          src={preview.url} 
+                          alt={`Preview ${index + 1}`} 
+                          className="w-full h-32 md:h-40 object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Post Actions */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageSelect}
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!currentUser || selectedImages.length >= 4}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                      currentUser && selectedImages.length < 4
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                        : 'bg-gray-600 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span className="text-sm">Foto</span>
+                  </button>
+                  {selectedImages.length > 0 && (
+                    <span className="text-xs text-gray-400">{selectedImages.length}/4 imagens</span>
+                  )}
+                </div>
+                <button
+                  className={`font-bold py-2 px-6 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${
+                    currentUser && !uploadingPost
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-gray-600 cursor-not-allowed text-gray-400'
+                  }`}
+                  onClick={handleAddPost}
+                  disabled={!currentUser || uploadingPost}
+                >
+                  {uploadingPost ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Publicando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="w-4 h-4" />
+                      <span>Publicar</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Feed Posts */}
             {loadingPosts ? (
-              <div className="text-center text-gray-400">Carregando posts...</div>
+              <div className="space-y-6">
+                {[...Array(3)].map((_, index) => (
+                  <div key={index} className="bg-gray-800 rounded-xl p-6 animate-pulse">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-gray-700 rounded-full mr-3"></div>
+                      <div>
+                        <div className="h-4 bg-gray-700 rounded w-24 mb-2"></div>
+                        <div className="h-3 bg-gray-700 rounded w-16"></div>
+                      </div>
+                    </div>
+                    <div className="h-4 bg-gray-700 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-3/4 mb-4"></div>
+                    <div className="h-40 bg-gray-700 rounded mb-4"></div>
+                    <div className="flex space-x-4">
+                      <div className="h-8 bg-gray-700 rounded w-16"></div>
+                      <div className="h-8 bg-gray-700 rounded w-16"></div>
+                      <div className="h-8 bg-gray-700 rounded w-16"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : posts.length === 0 ? (
-              <div className="text-center text-gray-400">Nenhum post ainda. Seja o primeiro a publicar!</div>
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-800 rounded-full mb-4">
+                  <Image className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">Nenhum post ainda</h3>
+                <p className="text-gray-400 mb-6">Seja o primeiro a compartilhar sua jornada fitness!</p>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!currentUser}
+                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                    currentUser
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {currentUser ? 'Compartilhar Foto' : 'Faça login para postar'}
+                </button>
+              </div>
             ) : (
               posts.map((post) => {
                 const userInteraction = userInteractions[post.id];
@@ -388,137 +572,219 @@ function Community() {
                 const userReaction = userInteraction?.reaction;
                 
                 return (
-                  <div key={post.id} className="bg-gray-800 rounded-xl shadow-lg p-6 relative">
-                    <div className="flex items-center mb-4">
-                      {post.authorPhotoURL ? (
-                        <img src={post.authorPhotoURL} alt="User Avatar" className="w-10 h-10 rounded-full mr-3 object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full mr-3 bg-gray-700 flex items-center justify-center text-gray-400">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                          </svg>
-                        </div>
-                       )}
-                      <div>
-                        <p className="font-semibold text-white">{post.author}</p>
-                        <p className="text-sm text-gray-400">{post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : 'Carregando...'}</p>
-                      </div>
-                    </div>
-                    <p className="text-gray-300 mb-4">{post.content}</p>
-                    <div className="flex justify-between items-center text-gray-400">
-                      <div className="flex space-x-4">
-                        <button 
-                          className={`flex items-center space-x-1 transition-colors ${
-                            currentUser 
-                              ? hasLiked 
-                                ? 'text-red-500 hover:text-red-400' 
-                                : 'hover:text-red-500'
-                              : 'cursor-not-allowed text-gray-500'
-                          }`}
-                          onClick={() => handleLikePost(post.id)}
-                          disabled={!currentUser}
-                        >
-                          <ThumbsUp className={`w-4 h-4 ${hasLiked ? 'fill-current' : ''}`} /> 
-                          <span className="text-sm">{post.likes || 0}</span>
-                        </button>
-                        <button 
-                          className={`flex items-center space-x-1 ${currentUser ? 'hover:text-blue-500' : 'cursor-not-allowed text-gray-500'}`}
-                          onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
-                          disabled={!currentUser}
-                        >
-                          <MessageCircle className="w-4 h-4" /> <span className="text-sm">{post.comments || 0}</span>
-                        </button>
-                        <div className="relative">
-                          <button 
-                            className={`flex items-center space-x-1 transition-colors ${
-                              currentUser 
-                                ? userReaction 
-                                  ? 'text-yellow-500 hover:text-yellow-400' 
-                                  : 'hover:text-yellow-500'
-                                : 'cursor-not-allowed text-gray-500'
-                            }`}
-                            onClick={() => setShowEmojiPicker(showEmojiPicker === post.id ? null : post.id)}
-                            disabled={!currentUser}
-                          >
-                            {userReaction ? (
-                              <span className="text-lg">{userReaction}</span>
-                            ) : (
-                              <Smile className="w-4 h-4" />
-                            )}
-                          </button>
-                          {showEmojiPicker === post.id && (
-                            <div className="absolute bottom-full left-0 mb-2 bg-gray-700 p-2 rounded-lg shadow-lg flex space-x-1 z-10">
-                              {emojis.map(emoji => (
-                                <button
-                                  key={emoji}
-                                  className={`text-xl hover:scale-110 transition-transform ${
-                                    userReaction === emoji ? 'bg-gray-600 rounded' : ''
-                                  }`}
-                                  onClick={() => handleReaction(post.id, emoji)}
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
+                  <div key={post.id} className="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                    {/* Post Header */}
+                    <div className="p-4 md:p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                          {post.authorPhotoURL ? (
+                            <img src={post.authorPhotoURL} alt="User Avatar" className="w-10 h-10 rounded-full mr-3 object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full mr-3 bg-gray-700 flex items-center justify-center text-gray-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                              </svg>
                             </div>
                           )}
+                          <div>
+                            <p className="font-semibold text-white">{post.author}</p>
+                            <p className="text-sm text-gray-400">{post.timestamp ? new Date(post.timestamp.toDate()).toLocaleString() : 'Carregando...'}</p>
+                          </div>
+                        </div>
+                        <button className="text-gray-400 hover:text-white">
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Post Content */}
+                      {post.content && (
+                        <p className="text-gray-300 mb-4 leading-relaxed">{post.content}</p>
+                      )}
+                    </div>
+
+                    {/* Post Images */}
+                    {post.images && post.images.length > 0 && (
+                      <div className={`${post.images.length === 1 ? '' : 'p-4 md:p-6 pt-0'}`}>
+                        <div className={`grid gap-1 ${
+                          post.images.length === 1 ? 'grid-cols-1' : 
+                          post.images.length === 2 ? 'grid-cols-2' : 
+                          post.images.length === 3 ? 'grid-cols-2' : 
+                          'grid-cols-2'
+                        }`}>
+                          {post.images.map((imageUrl, index) => (
+                            <div key={index} className={`relative ${
+                              post.images.length === 1 ? 'col-span-1' :
+                              post.images.length === 3 && index === 0 ? 'col-span-2' :
+                              'col-span-1'
+                            }`}>
+                              <img 
+                                src={imageUrl} 
+                                alt={`Post image ${index + 1}`} 
+                                className={`w-full object-cover cursor-pointer hover:opacity-95 transition-opacity ${
+                                  post.images.length === 1 ? 'h-64 md:h-96' : 'h-32 md:h-48'
+                                } ${post.images.length === 1 ? '' : 'rounded-lg'}`}
+                                onClick={() => {
+                                  // Implementar modal de visualização de imagem
+                                  window.open(imageUrl, '_blank');
+                                }}
+                              />
+                              {post.images.length > 4 && index === 3 && (
+                                <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center rounded-lg">
+                                  <span className="text-white text-xl font-bold">+{post.images.length - 4}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="flex space-x-2">
-                        {Object.entries(post.reactions || {}).map(([emoji, count]) => (
-                          count > 0 && (
-                            <span key={emoji} className="text-sm bg-gray-700 px-2 py-1 rounded-full">
-                              {emoji} {count}
-                            </span>
-                          )
-                        ))}
-                      </div>
-                    </div>
-                    {/* Comment Input */}
-                    <div className="mt-4 flex items-center space-x-2">
-                      <input
-                        type="text"
-                        className={`flex-grow p-2 rounded-lg ${currentUser ? 'bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}
-                        placeholder={currentUser ? "Escreva um comentário..." : "Faça login para comentar..."}
-                        value={commentContent[post.id] || ''}
-                        onChange={(e) => setCommentContent(prev => ({ ...prev, [post.id]: e.target.value }))}
-                        disabled={!currentUser}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleCommentPost(post.id);
-                          }
-                        }}
-                      />
-                      <button
-                        className={`p-2 rounded-lg transition-colors duration-200 ${currentUser ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}
-                        onClick={() => handleCommentPost(post.id)}
-                        disabled={!currentUser}
-                      >
-                        <Send className="w-5 h-5" />
-                      </button>
-                    </div>
-                    {/* Comments List */}
-                    {showComments[post.id] && post.commentsList && post.commentsList.length > 0 && (
-                      <div className="mt-4 border-t border-gray-700 pt-4 space-y-3">
-                        {post.commentsList.map(comment => (
-                          <div key={comment.id} className="bg-gray-700 p-3 rounded-lg">
-                            <div className="flex items-center mb-1">
-                              {comment.authorPhotoURL ? (
-                                <img src={comment.authorPhotoURL} alt="Commenter Avatar" className="w-6 h-6 rounded-full mr-2 object-cover" />
+                    )}
+
+                    {/* Post Actions */}
+                    <div className="p-4 md:p-6 pt-0">
+                      <div className="flex justify-between items-center text-gray-400 mb-4">
+                        <div className="flex space-x-6">
+                          <button 
+                            className={`flex items-center space-x-2 transition-colors ${
+                              currentUser 
+                                ? hasLiked 
+                                  ? 'text-red-500 hover:text-red-400' 
+                                  : 'hover:text-red-500'
+                                : 'cursor-not-allowed text-gray-500'
+                            }`}
+                            onClick={() => handleLikePost(post.id)}
+                            disabled={!currentUser}
+                          >
+                            <Heart className={`w-5 h-5 ${hasLiked ? 'fill-current' : ''}`} /> 
+                            <span className="text-sm font-medium">{post.likes || 0}</span>
+                          </button>
+                          <button 
+                            className={`flex items-center space-x-2 ${currentUser ? 'hover:text-blue-500' : 'cursor-not-allowed text-gray-500'}`}
+                            onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                            disabled={!currentUser}
+                          >
+                            <MessageCircle className="w-5 h-5" /> 
+                            <span className="text-sm font-medium">{post.comments || 0}</span>
+                          </button>
+                          <div className="relative">
+                            <button 
+                              className={`flex items-center space-x-2 transition-colors ${
+                                currentUser 
+                                  ? userReaction 
+                                    ? 'text-yellow-500 hover:text-yellow-400' 
+                                    : 'hover:text-yellow-500'
+                                  : 'cursor-not-allowed text-gray-500'
+                              }`}
+                              onClick={() => setShowEmojiPicker(showEmojiPicker === post.id ? null : post.id)}
+                              disabled={!currentUser}
+                            >
+                              {userReaction ? (
+                                <span className="text-lg">{userReaction}</span>
                               ) : (
-                                <div className="w-6 h-6 rounded-full mr-2 bg-gray-600 flex items-center justify-center text-gray-400">
+                                <Smile className="w-5 h-5" />
+                              )}
+                            </button>
+                            {showEmojiPicker === post.id && (
+                              <div className="absolute bottom-full left-0 mb-2 bg-gray-700 p-3 rounded-lg shadow-lg z-10">
+                                <div className="grid grid-cols-5 gap-2">
+                                  {emojis.map(emoji => (
+                                    <button
+                                      key={emoji}
+                                      className={`text-xl hover:scale-110 transition-transform p-1 rounded ${
+                                        userReaction === emoji ? 'bg-gray-600' : 'hover:bg-gray-600'
+                                      }`}
+                                      onClick={() => handleReaction(post.id, emoji)}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <button className="hover:text-blue-500 transition-colors">
+                            <Share2 className="w-5 h-5" />
+                          </button>
+                          <button className="hover:text-yellow-500 transition-colors">
+                            <Bookmark className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Reactions Display */}
+                      {Object.entries(post.reactions || {}).some(([emoji, count]) => count > 0) && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {Object.entries(post.reactions || {}).map(([emoji, count]) => (
+                            count > 0 && (
+                              <span key={emoji} className="text-sm bg-gray-700 px-3 py-1 rounded-full flex items-center space-x-1">
+                                <span>{emoji}</span>
+                                <span className="text-gray-300">{count}</span>
+                              </span>
+                            )
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Comment Input */}
+                      <div className="flex items-center space-x-3 mb-4">
+                        {currentUser?.photoURL ? (
+                          <img src={currentUser.photoURL} alt="Your Avatar" className="w-8 h-8 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          className={`flex-grow p-3 rounded-full text-sm ${currentUser ? 'bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}
+                          placeholder={currentUser ? "Adicione um comentário..." : "Faça login para comentar..."}
+                          value={commentContent[post.id] || ''}
+                          onChange={(e) => setCommentContent(prev => ({ ...prev, [post.id]: e.target.value }))}
+                          disabled={!currentUser}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleCommentPost(post.id);
+                            }
+                          }}
+                        />
+                        <button
+                          className={`p-2 rounded-full transition-colors duration-200 ${currentUser ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}
+                          onClick={() => handleCommentPost(post.id)}
+                          disabled={!currentUser}
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Comments List */}
+                      {showComments[post.id] && post.commentsList && post.commentsList.length > 0 && (
+                        <div className="space-y-3">
+                          {post.commentsList.map(comment => (
+                            <div key={comment.id} className="flex items-start space-x-3">
+                              {comment.authorPhotoURL ? (
+                                <img src={comment.authorPhotoURL} alt="Commenter Avatar" className="w-8 h-8 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-gray-400">
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                                   </svg>
                                 </div>
-                               )}
-                              <p className="font-semibold text-white text-sm">{comment.author}</p>
-                              <p className="text-xs text-gray-400 ml-2">{comment.timestamp ? new Date(comment.timestamp.toDate ? comment.timestamp.toDate() : comment.timestamp).toLocaleString() : 'Carregando...'}</p>
+                              )}
+                              <div className="flex-1 bg-gray-700 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="font-semibold text-white text-sm">{comment.author}</p>
+                                  <p className="text-xs text-gray-400">{comment.timestamp ? new Date(comment.timestamp.toDate ? comment.timestamp.toDate() : comment.timestamp).toLocaleString() : 'Carregando...'}</p>
+                                </div>
+                                <p className="text-gray-300 text-sm">{comment.content}</p>
+                              </div>
                             </div>
-                            <p className="text-gray-300 text-sm">{comment.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -529,12 +795,24 @@ function Community() {
         {activeTab === 'announcements' && (
           <div className="bg-gray-800 rounded-xl shadow-lg p-6">
             <h2 className="text-2xl font-bold text-white mb-4">Anúncios Importantes</h2>
-            <p className="text-gray-300">Aqui serão exibidos os anúncios da equipe Team HIIT. Fique ligado para novidades, eventos e promoções!</p>
-            <ul className="list-disc list-inside mt-4 text-gray-300">
-              <li>Novo desafio de 30 dias começando em 01/07!</li>
-              <li>Live especial com o Renan Gonçalves na próxima semana.</li>
-              <li>Desconto exclusivo para membros premium.</li>
-            </ul>
+            <p className="text-gray-300 mb-6">Aqui serão exibidos os anúncios da equipe Team HIIT. Fique ligado para novidades, eventos e promoções!</p>
+            
+            <div className="space-y-4">
+              <div className="bg-gradient-to-r from-red-600 to-orange-600 rounded-lg p-4">
+                <h3 className="text-white font-bold mb-2">🔥 Novo Desafio de 30 Dias!</h3>
+                <p className="text-red-100">Começando em 01/07! Prepare-se para transformar seu corpo com treinos intensos.</p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-4">
+                <h3 className="text-white font-bold mb-2">📺 Live Especial</h3>
+                <p className="text-blue-100">Live com o Renan Gonçalves na próxima semana. Não perca!</p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-lg p-4">
+                <h3 className="text-white font-bold mb-2">💰 Desconto Exclusivo</h3>
+                <p className="text-green-100">Membros premium têm desconto especial em produtos selecionados.</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -543,3 +821,4 @@ function Community() {
 }
 
 export default Community;
+
