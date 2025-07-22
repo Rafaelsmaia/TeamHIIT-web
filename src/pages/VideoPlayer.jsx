@@ -7,6 +7,7 @@ import Header from '../components/ui/Header.jsx';
 
 // Helper function to get YouTube video ID
 const getYouTubeVideoId = (url) => {
+  if (!url) return null;
   const regExp = /^.*(?:youtu.be\/|v\/|e\/|embed\/|watch\?v=|youtube.com\/user\/[^\/]+\/|youtube.com\/\?v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return (match && match[1].length === 11) ? match[1] : null;
@@ -17,7 +18,6 @@ function VideoPlayer() {
   const navigate = useNavigate();
   const location = useLocation();
   const [videoData, setVideoData] = useState(null);
-  const [program, setProgram] = useState(null);
   const [training, setTraining] = useState(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [allVideos, setAllVideos] = useState([]);
@@ -64,109 +64,117 @@ function VideoPlayer() {
 
   useEffect(() => {
     const fetchTrainingData = () => {
-      // Buscar dados do programa baseado no ID da URL
-      const trainingId = location.pathname.split('/')[2]; // Pega o ID do training da URL
+      console.log('Carregando dados do treino...');
       
-      if (window.trainingsData && window.trainingsData.sections) {
-        let foundTraining = null;
-        let foundProgram = null;
+      // Buscar dados do programa baseado no ID da URL
+      const pathParts = location.pathname.split('/');
+      const trainingId = pathParts[2]; // /video/training-id/module-id
+      
+      console.log('Training ID:', trainingId);
+      console.log('Module ID:', moduleId);
+      console.log('Video ID:', videoId);
 
+      if (window.trainingsData && window.trainingsData.sections) {
+        console.log('Dados de treinos carregados:', window.trainingsData);
+        
+        let foundTraining = null;
+        let foundSection = null;
+
+        // Buscar o treino em todas as seções
         for (const section of window.trainingsData.sections) {
           foundTraining = section.trainings.find(t => t.id === trainingId);
           if (foundTraining) {
-            // Criar estrutura do programa
-            if (foundTraining.modules && foundTraining.modules.length > 0) {
-              foundProgram = {
-                id: foundTraining.id,
-                title: foundTraining.title,
-                description: foundTraining.description || `Programa completo de ${foundTraining.title}`,
-                instructor: "Renan Gonçalves",
-                duration: foundTraining.duration || "Vários módulos",
-                level: foundTraining.level || "Todos os níveis",
-                image: foundTraining.imageUrl,
-                sections: [
-                  {
-                    id: "treinos",
-                    title: "Treinos",
-                    description: "Programa completo de treinos",
-                    modules: foundTraining.modules.map((module, index) => {
-                      if (module.videoUrl) {
-                        return {
-                          id: `modulo-${index + 1}`,
-                          title: module.title,
-                          description: `Treino ${module.title}`,
-                          videoUrl: module.videoUrl,
-                          youtubeId: getYouTubeVideoId(module.videoUrl),
-                          duration: "30-40 min",
-                          type: "Treino"
-                        };
-                      } else if (module.youtubeId) {
-                        return {
-                          id: `modulo-${index + 1}`,
-                          title: module.title,
-                          description: `Treino ${module.title}`,
-                          videoUrl: `https://youtu.be/${module.youtubeId}`,
-                          youtubeId: module.youtubeId,
-                          duration: "30-40 min",
-                          type: "Treino"
-                        };
-                      }
-                      return {
-                        id: `modulo-${index + 1}`,
-                        title: module.title,
-                        description: `Treino ${module.title}`,
-                        videoUrl: null,
-                        youtubeId: null,
-                        duration: "30-40 min",
-                        type: "Treino"
-                      };
-                    })
-                  }
-                ]
-              };
-
-              // Criar lista de todos os vídeos para a playlist
-              const videos = foundProgram.sections[0].modules;
-              setAllVideos(videos);
-
-              // Encontrar o vídeo atual baseado no moduleId ou videoId
-              let currentIndex = 0;
-              if (moduleId) {
-                currentIndex = videos.findIndex(v => v.id === moduleId || v.youtubeId === videoId);
-                if (currentIndex === -1) currentIndex = 0;
-              }
-              setCurrentVideoIndex(currentIndex);
-
-              // Definir dados do vídeo atual
-              const currentVideo = videos[currentIndex];
-              if (currentVideo) {
-                setVideoData({
-                  title: currentVideo.title,
-                  youtubeId: currentVideo.youtubeId,
-                  description: currentVideo.description,
-                  duration: currentVideo.duration,
-                  level: foundProgram.level,
-                  instructor: foundProgram.instructor,
-                  category: foundTraining.categories?.[0] || 'Treino'
-                });
-              }
-            }
-
-            setTraining(foundTraining);
-            setProgram(foundProgram);
+            foundSection = section;
+            console.log('Treino encontrado:', foundTraining);
             break;
           }
         }
-        setLoading(false);
+
+        if (foundTraining && foundTraining.modules && foundTraining.modules.length > 0) {
+          // Processar módulos do treino
+          const processedVideos = foundTraining.modules.map((module, index) => {
+            const youtubeId = module.videoUrl ? getYouTubeVideoId(module.videoUrl) : module.youtubeId;
+            
+            return {
+              id: `modulo-${index + 1}`,
+              title: module.title,
+              description: `${foundTraining.title} - ${module.title}`,
+              videoUrl: module.videoUrl || (module.youtubeId ? `https://youtu.be/${module.youtubeId}` : null),
+              youtubeId: youtubeId,
+              duration: "30-40 min",
+              type: "Treino"
+            };
+          }).filter(video => video.youtubeId); // Filtrar apenas vídeos válidos
+
+          console.log('Vídeos processados:', processedVideos);
+          setAllVideos(processedVideos);
+
+          // Encontrar o vídeo atual
+          let currentIndex = 0;
+          if (moduleId) {
+            // Buscar por ID do módulo
+            currentIndex = processedVideos.findIndex(v => v.id === moduleId);
+            if (currentIndex === -1) {
+              // Buscar por YouTube ID
+              currentIndex = processedVideos.findIndex(v => v.youtubeId === videoId);
+            }
+            if (currentIndex === -1) {
+              // Buscar por índice numérico
+              const moduleNumber = parseInt(moduleId.replace('modulo-', ''));
+              if (!isNaN(moduleNumber) && moduleNumber > 0 && moduleNumber <= processedVideos.length) {
+                currentIndex = moduleNumber - 1;
+              }
+            }
+          }
+
+          console.log('Índice do vídeo atual:', currentIndex);
+          setCurrentVideoIndex(currentIndex);
+
+          // Definir dados do vídeo atual
+          const currentVideo = processedVideos[currentIndex];
+          if (currentVideo) {
+            console.log('Vídeo atual:', currentVideo);
+            setVideoData({
+              title: currentVideo.title,
+              youtubeId: currentVideo.youtubeId,
+              description: currentVideo.description,
+              duration: currentVideo.duration,
+              level: foundTraining.level || 'Todos os níveis',
+              instructor: 'Team HIIT',
+              category: foundTraining.categories?.[0] || 'Treino'
+            });
+          } else {
+            console.error('Vídeo atual não encontrado');
+            setVideoData(null);
+          }
+
+          setTraining({
+            ...foundTraining,
+            sectionTitle: foundSection?.title || 'Treinos'
+          });
+        } else {
+          console.error('Treino não encontrado ou sem módulos:', trainingId);
+          setTraining(null);
+          setVideoData(null);
+        }
+      } else {
+        console.error('Dados de treinos não carregados');
       }
+      
+      setLoading(false);
     };
 
+    // Verificar se os dados já estão carregados
     if (!window.trainingsData) {
+      console.log('Carregando script trainings.js...');
       const script = document.createElement('script');
       script.src = '/trainings.js';
-      script.onload = fetchTrainingData;
-      script.onerror = () => {
-        console.error('Erro ao carregar arquivo de treinos');
+      script.onload = () => {
+        console.log('Script trainings.js carregado com sucesso');
+        fetchTrainingData();
+      };
+      script.onerror = (error) => {
+        console.error('Erro ao carregar arquivo de treinos:', error);
         setLoading(false);
       };
       document.head.appendChild(script);
@@ -211,19 +219,21 @@ function VideoPlayer() {
       return;
     }
 
+    console.log('Selecionando vídeo:', video, 'índice:', index);
+    
     setCurrentVideoIndex(index);
     setVideoData({
       title: video.title,
       youtubeId: video.youtubeId,
       description: video.description,
       duration: video.duration,
-      level: program?.level || 'Todos os níveis',
-      instructor: program?.instructor || 'Team HIIT',
+      level: training?.level || 'Todos os níveis',
+      instructor: 'Team HIIT',
       category: training?.categories?.[0] || 'Treino'
     });
 
     // Atualizar URL
-    navigate(`/video/${video.id}/${video.youtubeId}`, { replace: true });
+    navigate(`/video/${training.id}/${video.id}/${video.youtubeId}`, { replace: true });
   };
 
   const scrollPlaylist = (direction) => {
@@ -302,13 +312,17 @@ function VideoPlayer() {
     );
   }
 
-  if (!videoData || !program) {
+  if (!videoData || !training) {
+    console.error('Dados não encontrados:', { videoData, training });
     return (
       <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
         <Header />
         <div className="container mx-auto px-6 py-8 pt-24">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-4">Vídeo não encontrado</h1>
+            <p className="text-gray-400 mb-6">
+              Não foi possível carregar os dados do vídeo. Verifique se o link está correto.
+            </p>
             <button
               onClick={() => navigate('/dashboard')}
               className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors"
@@ -328,22 +342,30 @@ function VideoPlayer() {
       {/* Banner do Programa */}
       <div className="w-full relative" style={{ height: '50vh' }}>
         <img 
-          src={`/${program.image}`}
-          alt={program.title} 
+          src={`/${training.imageUrl}`}
+          alt={training.title} 
           className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.src = '/CAPAS TEAM HIIT/COMECE AQUI.png'; // Fallback image
+          }}
         />
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
           <div className="text-white text-center p-4">
-            <h1 className="text-4xl md:text-6xl font-bold mb-2">{program.title}</h1>
-            <p className="text-lg md:text-xl opacity-90 max-w-3xl mx-auto">{program.description}</p>
+            <h1 className="text-4xl md:text-6xl font-bold mb-2">{training.title}</h1>
+            <p className="text-lg md:text-xl opacity-90 max-w-3xl mx-auto">
+              {training.description || `Programa completo de ${training.title}`}
+            </p>
             <div className="mt-4 flex justify-center space-x-4">
               <span className="bg-orange-500 text-white px-4 py-2 rounded-full text-sm">
                 <User className="w-4 h-4 inline mr-1" />
-                {program.instructor}
+                Team HIIT
               </span>
               <span className="bg-gray-700 text-white px-4 py-2 rounded-full text-sm">
                 <Clock className="w-4 h-4 inline mr-1" />
-                {program.duration}
+                {training.duration}
+              </span>
+              <span className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm">
+                {training.sectionTitle}
               </span>
               {isSubscriber && (
                 <span className="bg-yellow-500 text-black px-4 py-2 rounded-full text-sm flex items-center">
@@ -574,12 +596,15 @@ function VideoPlayer() {
                               src={thumbnailUrl} 
                               alt={video.title} 
                               className="w-full h-full object-cover rounded"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
                             />
-                          ) : (
-                            <div className="w-full h-full bg-gray-600 flex items-center justify-center rounded">
-                              <Play className="w-4 h-4 text-white" />
-                            </div>
-                          )}
+                          ) : null}
+                          <div className="w-full h-full bg-gray-600 flex items-center justify-center rounded" style={{ display: thumbnailUrl ? 'none' : 'flex' }}>
+                            <Play className="w-4 h-4 text-white" />
+                          </div>
                           {isCurrentVideo && (
                             <div className="absolute inset-0 bg-orange-500/30 flex items-center justify-center rounded">
                               <Play className="w-3 h-3 text-white" />
@@ -702,3 +727,4 @@ function VideoPlayer() {
 }
 
 export default VideoPlayer;
+

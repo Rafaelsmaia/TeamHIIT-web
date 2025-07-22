@@ -1,0 +1,112 @@
+/* PWA iOS Safe Area Fix */
+
+/* Detectar se está rodando como PWA */
+@media (display-mode: standalone) {
+  
+  /* Correção para iOS - Safe Area */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    
+    /* Aplicar padding-top no body para empurrar todo conteúdo */
+    body {
+      padding-top: env(safe-area-inset-top) !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
+      padding-left: env(safe-area-inset-left) !important;
+      padding-right: env(safe-area-inset-right) !important;
+    }
+    
+    /* Ajustar header especificamente */
+    .header,
+    header,
+    [class*="header"],
+    [class*="Header"] {
+      padding-top: calc(20px + env(safe-area-inset-top)) !important;
+    }
+    
+    /* Ajustar container principal */
+    #root {
+      min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+    
+    /* Ajustar elementos fixos no topo */
+    .fixed-top,
+    [style*="position: fixed"],
+    [style*="position:fixed"] {
+      top: env(safe-area-inset-top) !important;
+    }
+  }
+  
+  /* Fallback para dispositivos iOS mais antigos */
+  @supports not (padding-top: env(safe-area-inset-top)) {
+    body {
+      padding-top: 44px !important; /* Altura padrão da status bar iOS */
+    }
+    
+    .header,
+    header,
+    [class*="header"],
+    [class*="Header"] {
+      padding-top: 64px !important; /* 44px + 20px */
+    }
+  }
+}
+
+/* Ajustes específicos para iPhone X e superiores */
+@media (display-mode: standalone) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) {
+  body {
+    padding-top: 44px !important;
+  }
+}
+
+/* Ajustes para iPhone 12/13/14 */
+@media (display-mode: standalone) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) {
+  body {
+    padding-top: 47px !important;
+  }
+}
+
+/* Ajustes para iPhone 12/13/14 Pro Max */
+@media (display-mode: standalone) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) {
+  body {
+    padding-top: 47px !important;
+  }
+}
+
+/* Garantir que o conteúdo não seja cortado */
+@media (display-mode: standalone) {
+  .main-content,
+  .container,
+  .app-container {
+    padding-top: 20px;
+  }
+  
+  /* Ajustar carrossel/banner se necessário */
+  .carousel,
+  .banner,
+  .hero {
+    margin-top: 10px;
+  }
+}
+
+/* Classe utilitária para elementos que precisam respeitar safe area */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 20px) !important;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px) !important;
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left, 0px) !important;
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right, 0px) !important;
+}
+
+/* Ajuste para viewport height considerando safe areas */
+.full-height-safe {
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
