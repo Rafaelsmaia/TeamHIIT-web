@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, Home, User, Settings, LogOut, Users, Trophy, Bell, ChevronDown } from 'lucide-react';
+import { Menu, X, Home, User, Settings, LogOut, Users, Trophy, Bell, ChevronDown, Calculator } from 'lucide-react';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 
 function Header() {
@@ -105,6 +105,15 @@ function Header() {
             >
               <Users className="w-4 h-4" />
               <span>Comunidade</span>
+            </button>
+
+            {/* NOVA ABA NUTRIÇÃO */}
+            <button
+              onClick={() => navigate(currentUser ? '/nutrition' : '/auth')}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+            >
+              <Calculator className="w-4 h-4" />
+              <span>Nutrição</span>
             </button>
 
             {currentUser && (
@@ -227,6 +236,18 @@ function Header() {
                 <Users className="w-5 h-5" />
                 <span>Comunidade</span>
               </button>
+
+              {/* NOVA ABA NUTRIÇÃO - MOBILE */}
+              <button
+                onClick={() => {
+                  navigate(currentUser ? '/nutrition' : '/auth');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
+              >
+                <Calculator className="w-5 h-5" />
+                <span>Nutrição</span>
+              </button>
               
               {currentUser && (
                 <>
@@ -301,3 +322,4 @@ function Header() {
 }
 
 export default Header;
+
