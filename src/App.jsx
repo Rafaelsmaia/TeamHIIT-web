@@ -7,6 +7,9 @@ import Community from './pages/Community.jsx';
 import Auth from './pages/Auth.jsx';
 import Profile from './pages/Profile.jsx';
 import JornadaHIIT from './pages/JornadaHIIT.jsx';
+import CalorieCalculator from './pages/CalorieCalculator.jsx';
+import NutritionHistory from './pages/NutritionHistory.jsx';
+import Header from './components/ui/Header.jsx';
 import { auth } from './firebaseConfig';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useToast } from './components/ui/Toast.jsx';
@@ -29,7 +32,14 @@ function PrivateRoute({ children }) {
   }, [auth]);
 
   if (loading) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando...</p>
+        </div>
+      </div>
+    );
   }
 
   return currentUser ? children : <Navigate to="/auth" replace />;
@@ -41,6 +51,7 @@ function AppContent() {
   return (
     <>
       <Router>
+        <Header />
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/trainings/:id" element={<TrainingDetail />} />
@@ -69,6 +80,23 @@ function AppContent() {
             element={
               <PrivateRoute>
                 <JornadaHIIT />
+              </PrivateRoute>
+            }
+          />
+          {/* NOVAS ROTAS DA CALCULADORA DE CALORIAS */}
+          <Route 
+            path="/nutrition" 
+            element={
+              <PrivateRoute>
+                <CalorieCalculator />
+              </PrivateRoute>
+            }
+          />
+          <Route 
+            path="/nutrition/history" 
+            element={
+              <PrivateRoute>
+                <NutritionHistory />
               </PrivateRoute>
             }
           />
