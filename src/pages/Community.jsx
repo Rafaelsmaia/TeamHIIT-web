@@ -19,6 +19,7 @@ function Community() {
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingPost, setUploadingPost] = useState(false);
   const [imagePreview, setImagePreview] = useState([]);
+  const [compressingImages, setCompressingImages] = useState(false);
   const fileInputRef = useRef(null);
 
   const emojis = ['👍', '❤️', '😂', '🔥', '😢', '🙏', '💪', '🎯', '⚡', '🏆'];
@@ -33,6 +34,88 @@ function Community() {
     });
     return unsubscribe;
   }, [auth]);
+
+  // Função para comprimir imagem - VERSÃO MELHORADA E ROBUSTA
+  const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+          try {
+            // Calcular dimensões mantendo proporção
+            let { width, height } = img;
+            
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Desenhar imagem redimensionada
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Converter para blob comprimido
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  resolve({
+                    blob: blob,
+                    originalSize: file.size,
+                    compressedSize: blob.size,
+                    compressionRatio: Math.round((1 - blob.size / file.size) * 100)
+                  });
+                } else {
+                  // Fallback: usar arquivo original
+                  resolve({
+                    blob: file,
+                    originalSize: file.size,
+                    compressedSize: file.size,
+                    compressionRatio: 0
+                  });
+                }
+              },
+              'image/jpeg',
+              quality
+            );
+          } catch (error) {
+            console.warn('Erro na compressão, usando arquivo original:', error);
+            resolve({
+              blob: file,
+              originalSize: file.size,
+              compressedSize: file.size,
+              compressionRatio: 0
+            });
+          }
+        };
+        
+        img.onerror = () => {
+          console.warn('Erro ao carregar imagem, usando arquivo original');
+          resolve({
+            blob: file,
+            originalSize: file.size,
+            compressedSize: file.size,
+            compressionRatio: 0
+          });
+        };
+        
+        img.src = URL.createObjectURL(file);
+        
+      } catch (error) {
+        console.warn('Erro geral na compressão, usando arquivo original:', error);
+        resolve({
+          blob: file,
+          originalSize: file.size,
+          compressedSize: file.size,
+          compressionRatio: 0
+        });
+      }
+    });
+  };
 
   // Buscar interações do usuário atual
   const fetchUserInteractions = async (userId) => {
@@ -107,48 +190,122 @@ function Community() {
     fetchPosts();
   }, []);
 
-  // Função para selecionar imagens
-  const handleImageSelect = (event) => {
+  // Função para selecionar e comprimir imagens - VERSÃO MELHORADA
+  const handleImageSelect = async (event) => {
     const files = Array.from(event.target.files);
     if (files.length + selectedImages.length > 4) {
       alert('Você pode selecionar no máximo 4 imagens por post.');
       return;
     }
 
-    const newImages = files.filter(file => {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert(`A imagem ${file.name} é muito grande. Máximo 5MB por imagem.`);
-        return false;
+    setCompressingImages(true);
+
+    try {
+      const processedImages = [];
+      const newPreviews = [];
+
+      for (const file of files) {
+        // Verificar tamanho original - AUMENTADO PARA 50MB
+        if (file.size > 50 * 1024 * 1024) {
+          alert(`A imagem ${file.name} é muito grande. Máximo 50MB por imagem.`);
+          continue;
+        }
+
+        if (!file.type.startsWith('image/')) {
+          alert(`${file.name} não é um arquivo de imagem válido.`);
+          continue;
+        }
+
+        try {
+          // Tentar compressão
+          const compressionResult = await compressImage(file);
+          
+          // Verificar se precisa comprimir mais
+          let finalResult = compressionResult;
+          if (compressionResult.compressedSize > 5 * 1024 * 1024) {
+            // Comprimir mais agressivamente
+            finalResult = await compressImage(file, 800, 0.6);
+            
+            // Se ainda muito grande, tentar uma última vez
+            if (finalResult.compressedSize > 5 * 1024 * 1024) {
+              finalResult = await compressImage(file, 600, 0.5);
+            }
+          }
+          
+          // Se ainda muito grande após todas as tentativas, rejeitar
+          if (finalResult.compressedSize > 5 * 1024 * 1024) {
+            alert(`${file.name} não pôde ser comprimida suficientemente. Tente uma imagem menor.`);
+            continue;
+          }
+          
+          // Criar arquivo comprimido com nome original
+          const compressedFile = new File([finalResult.blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+
+          processedImages.push(compressedFile);
+
+          // Criar preview
+          const previewUrl = URL.createObjectURL(finalResult.blob);
+          newPreviews.push({
+            file: compressedFile,
+            url: previewUrl,
+            id: Date.now() + Math.random(),
+            originalSize: file.size,
+            compressedSize: finalResult.compressedSize,
+            compressionRatio: finalResult.compressionRatio
+          });
+          
+        } catch (compressionError) {
+          console.warn(`Erro na compressão de ${file.name}:`, compressionError);
+          
+          // Fallback: usar arquivo original se não for muito grande
+          if (file.size <= 5 * 1024 * 1024) {
+            processedImages.push(file);
+            
+            const previewUrl = URL.createObjectURL(file);
+            newPreviews.push({
+              file: file,
+              url: previewUrl,
+              id: Date.now() + Math.random(),
+              originalSize: file.size,
+              compressedSize: file.size,
+              compressionRatio: 0
+            });
+          } else {
+            alert(`${file.name} é muito grande e não pôde ser processada.`);
+          }
+        }
       }
-      return file.type.startsWith('image/');
-    });
 
-    setSelectedImages(prev => [...prev, ...newImages]);
-
-    // Criar previews
-    newImages.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(prev => [...prev, {
-          file,
-          url: e.target.result,
-          id: Date.now() + Math.random()
-        }]);
-      };
-      reader.readAsDataURL(file);
-    });
+      setSelectedImages(prev => [...prev, ...processedImages]);
+      setImagePreview(prev => [...prev, ...newPreviews]);
+      
+    } catch (error) {
+      console.error('Erro ao processar imagens:', error);
+      alert('Erro ao processar imagens. Tente novamente.');
+    } finally {
+      setCompressingImages(false);
+    }
   };
 
   // Remover imagem selecionada
   const removeImage = (index) => {
+    // Limpar URL do preview para evitar memory leak
+    if (imagePreview[index]?.url) {
+      URL.revokeObjectURL(imagePreview[index].url);
+    }
+    
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
     setImagePreview(prev => prev.filter((_, i) => i !== index));
   };
 
   // Upload de imagens para Firebase Storage
   const uploadImages = async (images) => {
-    const uploadPromises = images.map(async (image) => {
-      const imageRef = ref(storage, `posts/${Date.now()}_${image.name}`);
+    const uploadPromises = images.map(async (image, index) => {
+      const timestamp = Date.now();
+      const imageRef = ref(storage, `community/${currentUser.uid}/${timestamp}_${index}_${image.name}`);
       const snapshot = await uploadBytes(imageRef, image);
       return await getDownloadURL(snapshot.ref);
     });
@@ -187,7 +344,15 @@ function Community() {
       
       setNewPostContent('');
       setSelectedImages([]);
+      
+      // Limpar previews e URLs
+      imagePreview.forEach(preview => {
+        if (preview.url) {
+          URL.revokeObjectURL(preview.url);
+        }
+      });
       setImagePreview([]);
+      
       fetchPosts(); // Recarregar apenas quando adicionar novo post
     } catch (e) {
       console.error('Erro ao adicionar documento: ', e);
@@ -400,6 +565,15 @@ function Community() {
     }
   };
 
+  // Função para formatar tamanho de arquivo
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
       <Header />
@@ -449,7 +623,7 @@ function Community() {
                 </div>
               </div>
 
-              {/* Image Preview */}
+              {/* Image Preview - CORRIGIDO PARA MANTER PROPORÇÕES */}
               {imagePreview.length > 0 && (
                 <div className="mb-4">
                   <div className={`grid gap-2 ${imagePreview.length === 1 ? 'grid-cols-1' : imagePreview.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
@@ -458,7 +632,8 @@ function Community() {
                         <img 
                           src={preview.url} 
                           alt={`Preview ${index + 1}`} 
-                          className="w-full h-32 md:h-40 object-cover rounded-lg"
+                          className="w-full object-contain rounded-lg bg-gray-900"
+                          style={{ maxHeight: '300px', height: 'auto' }}
                         />
                         <button
                           onClick={() => removeImage(index)}
@@ -466,8 +641,42 @@ function Community() {
                         >
                           <X className="w-4 h-4" />
                         </button>
+                        {/* Informações de compressão - MELHORADAS */}
+                        {preview.compressionRatio > 0 && (
+                          <div className="absolute bottom-2 left-2 bg-green-600 bg-opacity-90 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
+                            <span>📉</span>
+                            <span>-{preview.compressionRatio}%</span>
+                          </div>
+                        )}
+                        {/* Tamanho final */}
+                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                          {formatFileSize(preview.compressedSize)}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                  {/* Estatísticas de compressão - MELHORADAS */}
+                  {imagePreview.some(p => p.compressionRatio > 0) && (
+                    <div className="mt-3 p-3 bg-green-900 bg-opacity-30 border border-green-600 rounded-lg">
+                      <div className="flex items-center space-x-2 text-green-400 text-sm">
+                        <span>✅</span>
+                        <span>Imagens otimizadas automaticamente!</span>
+                      </div>
+                      <div className="text-xs text-green-300 mt-1">
+                        Economia total: {Math.round(imagePreview.reduce((acc, p) => acc + (p.originalSize - p.compressedSize), 0) / 1024)} KB
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Loading de compressão - MELHORADO */}
+              {compressingImages && (
+                <div className="mb-4 flex items-center justify-center p-4 bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400 mr-3"></div>
+                  <div className="text-blue-400">
+                    <div className="font-medium">Otimizando imagens...</div>
+                    <div className="text-xs text-blue-300">Reduzindo tamanho para melhor performance</div>
                   </div>
                 </div>
               )}
@@ -485,9 +694,9 @@ function Community() {
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={!currentUser || selectedImages.length >= 4}
+                    disabled={!currentUser || selectedImages.length >= 4 || compressingImages}
                     className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                      currentUser && selectedImages.length < 4
+                      currentUser && selectedImages.length < 4 && !compressingImages
                         ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                         : 'bg-gray-600 text-gray-500 cursor-not-allowed'
                     }`}
@@ -501,12 +710,12 @@ function Community() {
                 </div>
                 <button
                   className={`font-bold py-2 px-6 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${
-                    currentUser && !uploadingPost
+                    currentUser && !uploadingPost && !compressingImages
                       ? 'bg-red-600 hover:bg-red-700 text-white'
                       : 'bg-gray-600 cursor-not-allowed text-gray-400'
                   }`}
                   onClick={handleAddPost}
-                  disabled={!currentUser || uploadingPost}
+                  disabled={!currentUser || uploadingPost || compressingImages}
                 >
                   {uploadingPost ? (
                     <>
@@ -602,7 +811,7 @@ function Community() {
                       )}
                     </div>
 
-                    {/* Post Images */}
+                    {/* Post Images - CORRIGIDO PARA MANTER PROPORÇÕES */}
                     {post.images && post.images.length > 0 && (
                       <div className={`${post.images.length === 1 ? '' : 'p-4 md:p-6 pt-0'}`}>
                         <div className={`grid gap-1 ${
@@ -620,9 +829,13 @@ function Community() {
                               <img 
                                 src={imageUrl} 
                                 alt={`Post image ${index + 1}`} 
-                                className={`w-full object-cover cursor-pointer hover:opacity-95 transition-opacity ${
-                                  post.images.length === 1 ? 'h-64 md:h-96' : 'h-32 md:h-48'
-                                } ${post.images.length === 1 ? '' : 'rounded-lg'}`}
+                                className={`w-full object-contain cursor-pointer hover:opacity-95 transition-opacity bg-gray-900 ${
+                                  post.images.length === 1 ? '' : 'rounded-lg'
+                                }`}
+                                style={{ 
+                                  maxHeight: post.images.length === 1 ? '500px' : '300px',
+                                  height: 'auto'
+                                }}
                                 onClick={() => {
                                   // Implementar modal de visualização de imagem
                                   window.open(imageUrl, '_blank');
