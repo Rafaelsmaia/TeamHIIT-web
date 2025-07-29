@@ -63,7 +63,7 @@ window.trainingsData = {
           duration: "9 módulos",
           level: "Intermediário",
           categories: ["Especial"],
-          imageUrl: "CAPAS TEAM HIIT/PROJETO VERÃO.JPG",
+          imageUrl: "CAPAS TEAM HIIT/projeto-verao.jpg",
           modules: [
             { title: "Módulo 1", videoUrl: "https://youtu.be/nNw3I_x5VfA" },
             { title: "Módulo 2", videoUrl: "https://youtu.be/dguwzqWv8J0" },
@@ -89,7 +89,7 @@ window.trainingsData = {
           duration: "6 treinos",
           level: "Intenso",
           categories: ["Desafio"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_6838.JPG",
+          imageUrl: "CAPAS TEAM HIIT/DESAFIO SUPER INTENSO.JPG",
           modules: [
             { title: "Treino 1", videoUrl: "https://youtu.be/KuaeMLiUdpY" },
             { title: "Treino 2", videoUrl: "https://youtu.be/vxJppGl90cg" },
@@ -105,7 +105,7 @@ window.trainingsData = {
           duration: "6 treinos",
           level: "Intermediário",
           categories: ["Desafio"],
-          imageUrl: "CAPAS TEAM HIIT/IMG_6078.JPG",
+          imageUrl: "CAPAS TEAM HIIT/DESAFIO 4 SEMANAS.jpg",
           modules: [
             { title: "Treino 1", videoUrl: "https://youtu.be/yFEy-61b_uA" },
             { title: "Treino 2", videoUrl: "https://youtu.be/mU4JTEgYFKs" },
@@ -121,7 +121,7 @@ window.trainingsData = {
           duration: "6 treinos",
           level: "Intermediário",
           categories: ["Desafio"],
-          imageUrl: "CAPAS TEAM HIIT/Culto Profético Moderno Azul Cartaz (42 x 59 cm) (2).JPG",
+          imageUrl: "CAPAS TEAM HIIT/DESAFIO COM HALTERES.png",
           modules: [
             { title: "Treino 1", videoUrl: "https://youtu.be/CNf4SwFMv_k" },
             { title: "Treino 2", videoUrl: "https://youtu.be/5FtbUAPVmz8" },
@@ -212,7 +212,7 @@ window.trainingsData = {
           duration: "9 treinos",
           level: "Avançado",
           categories: ["Principal"],
-          imageUrl: "CAPAS TEAM HIIT/VOCÊ ATLETA.JPG",
+          imageUrl: "CAPAS TEAM HIIT/voce-atleta.jpg",
           modules: [
             { title: "Treino 1", videoUrl: "https://youtu.be/avpuD9wGuEs" },
             { title: "Treino 2", videoUrl: "https://youtu.be/NatMiFmYZyQ" },
@@ -281,7 +281,7 @@ window.trainingsData = {
           duration: "11 treinos",
           level: "Intermediário",
           categories: ["Equipamentos"],
-          imageUrl: "CAPAS TEAM HIIT/IN SHAPE - PERNAS E GLÚTEOS.png",
+          imageUrl: "CAPAS TEAM HIIT/in-shape-pernas-gluteos.jpg",
           modules: [
             { title: "Treino 1", videoUrl: "https://youtu.be/mODRly905jU" },
             { title: "Treino 2", videoUrl: "https://youtu.be/jD5TIiqs6wY" },
@@ -382,7 +382,7 @@ window.trainingsData = {
           duration: "4 semanas",
           level: "Adaptado",
           categories: ["Adaptado"],
-          imageUrl: "CAPAS TEAM HIIT/TODO EM PÉ.JPG",
+          imageUrl: "CAPAS TEAM HIIT/todo-em-pe.jpg",
           modules: [
             { title: "Semana 1 - Treino 1", videoUrl: "https://youtu.be/BXHdnW1eOFM" },
             { title: "Semana 1 - Treino 2", videoUrl: "https://youtu.be/fRhosgsOMJs" },
@@ -446,7 +446,7 @@ window.trainingsData = {
           duration: "10 treinos",
           level: "Todos os níveis",
           categories: ["Específico"],
-          imageUrl: "CAPAS TEAM HIIT/PERNAS E GLÚTEOS.jpg",
+          imageUrl: "CAPAS TEAM HIIT/pernas-gluteos.jpg",
           modules: [
             { title: "Treino 1", videoUrl: "https://youtu.be/7et3Y6yvVo4" },
             { title: "Treino 2", videoUrl: "https://youtu.be/mEjdODrtol8" },
@@ -498,14 +498,14 @@ window.trainingsData = {
             { title: "Treino 21", videoUrl: "https://youtu.be/WbT8dq61p4k" },
             { title: "Treino 22", videoUrl: "https://youtu.be/2e-W9It4RR8" },
             { title: "Treino 23", videoUrl: "https://youtu.be/cOgUWVEL0Es" },
-            { title: "Treino 24", videoUrl: "https://youtu.be/p7ZalnmSzM0" },
-            { title: "Treino 25", videoUrl: "https://youtu.be/kYv6_d8nt3M" },
-            { title: "Treino 26", videoUrl: "https://youtu.be/tI1GhIiiGKc" },
-            { title: "Treino 27", videoUrl: "https://youtu.be/N8FZBqOn1-4" },
-            { title: "Treino 28", videoUrl: "https://youtu.be/9QYeS7bUWVc" },
-            { title: "Treino 29", videoUrl: "https://youtu.be/V_LdNn2-Sr8" },
-            { title: "Treino 30", videoUrl: "https://youtu.be/8bpSY6sxmu4" },
-            { title: "Treino 31", videoUrl: "https://youtu.be/amj8MZrYXrM" }
+            { title: "Treino 24", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
+            { title: "Treino 25", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
+            { title: "Treino 26", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
+            { title: "Treino 27", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
+            { title: "Treino 28", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
+            { title: "Treino 29", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
+            { title: "Treino 30", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
+            { title: "Treino 31", videoUrl: "https://youtu.be/xNzgJJJJJJJ" }
           ]
         }
       ]

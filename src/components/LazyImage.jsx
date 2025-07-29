@@ -4,96 +4,120 @@ const LazyImage = ({
   src, 
   alt, 
   className = '', 
-  style = {}, 
-  placeholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkNhcnJlZ2FuZG8uLi48L3RleHQ+PC9zdmc+',
+  style = {},
   onLoad,
-  onError
+  onError,
+  placeholder = null
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const imgRef = useRef();
+  const imgRef = useRef(null);
+  const observerRef = useRef(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
+    const currentImg = imgRef.current;
+    
+    if (!currentImg) return;
+
+    // Configuração MUITO mais agressiva para carrosséis
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+            observerRef.current?.unobserve(entry.target);
+          }
+        });
       },
       {
-        threshold: 0.1,
-        rootMargin: '50px'
+        threshold: 0, // 0% - qualquer pixel visível já carrega
+        rootMargin: '500px' // Margem MUITO grande - carrega antes mesmo de aparecer
       }
     );
 
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
+    observerRef.current.observe(currentImg);
 
-    return () => observer.disconnect();
+    return () => {
+      if (observerRef.current && currentImg) {
+        observerRef.current.unobserve(currentImg);
+      }
+    };
   }, []);
 
-  const handleLoad = () => {
+  const handleLoad = (e) => {
     setIsLoaded(true);
-    if (onLoad) onLoad();
+    if (onLoad) onLoad(e);
   };
 
-  const handleError = () => {
+  const handleError = (e) => {
     setHasError(true);
-    if (onError) onError();
+    if (onError) onError(e);
   };
 
-  return (
+  // Placeholder padrão quando há erro
+  const defaultErrorPlaceholder = (
     <div 
-      ref={imgRef}
-      className={`relative overflow-hidden ${className}`}
+      className={`flex items-center justify-center bg-gray-200 ${className}`}
       style={style}
     >
-      {/* Placeholder */}
-      {!isLoaded && !hasError && (
-        <img
-          src={placeholder}
-          alt=""
-          className="w-full h-full object-cover absolute inset-0 blur-sm"
-          style={{ filter: 'blur(5px)' }}
-        />
-      )}
-      
-      {/* Loading spinner */}
-      {!isLoaded && !hasError && isInView && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
+      <div className="text-center text-gray-500">
+        <svg 
+          className="w-8 h-8 mx-auto mb-2" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
+          />
+        </svg>
+        <p className="text-xs">Erro ao carregar imagem</p>
+      </div>
+    </div>
+  );
+
+  // Se há erro, mostrar placeholder de erro
+  if (hasError) {
+    return placeholder || defaultErrorPlaceholder;
+  }
+
+  return (
+    <div ref={imgRef} className="relative">
+      {/* Placeholder enquanto não carregou */}
+      {!isLoaded && (
+        <div 
+          className={`absolute inset-0 flex items-center justify-center bg-gray-100 ${className}`}
+          style={style}
+        >
+          {placeholder || (
+            <div className="text-center text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p className="text-xs">Carregando...</p>
+            </div>
+          )}
         </div>
       )}
-
-      {/* Actual image */}
-      {isInView && !hasError && (
+      
+      {/* Imagem real - só carrega quando está em view */}
+      {isInView && (
         <img
           src={src}
           alt={alt}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${
+          className={`transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
+          } ${className}`}
+          style={style}
           onLoad={handleLoad}
           onError={handleError}
-          loading="lazy"
-          decoding="async"
         />
-      )}
-
-      {/* Error state */}
-      {hasError && (
-        <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
-          <div className="text-center">
-            <div className="text-2xl mb-2">📷</div>
-            <div className="text-sm">Erro ao carregar imagem</div>
-          </div>
-        </div>
       )}
     </div>
   );
 };
 
 export default LazyImage;
+

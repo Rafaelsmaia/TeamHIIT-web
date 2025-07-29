@@ -1,291 +1,325 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Play, Clock, Target, Zap, Filter, Grid3X3, List, TrendingUp, Users, Award, Bookmark } from 'lucide-react';
-import Header from '../components/ui/Header.jsx';
-import { useToast } from '../components/ui/Toast.jsx';
-import LazyImage from '../components/LazyImage.jsx';
+import { Menu, X, Home, User, Settings, LogOut, Users, Trophy, Bell, ChevronDown, Calculator } from 'lucide-react';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 
-function Dashboard() {
-  const [allSections, setAllSections] = useState([]);
-  const [message, setMessage] = useState('');
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [loading, setLoading] = useState(true);
+function Header() {
   const navigate = useNavigate();
-  const { addToast, ToastContainer } = useToast();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const auth = getAuth();
+  const profileMenuRef = useRef(null);
 
   useEffect(() => {
-    const fetchTrainings = async () => {
-      try {
-        // Carrega o script com os dados dos treinos
-        const script = document.createElement('script');
-        script.src = '/trainings.js';
-        script.onload = () => {
-          if (window.trainingsData && window.trainingsData.sections) {
-            setAllSections(window.trainingsData.sections);
-            setLoading(false);
-          } else {
-            throw new Error('Dados dos treinos não encontrados');
-          }
-        };
-        script.onerror = () => {
-          throw new Error('Erro ao carregar arquivo de treinos');
-        };
-        document.head.appendChild(script);
-      } catch (error) {
-        console.error("Erro ao carregar treinos:", error);
-        setMessage(`Erro ao carregar treinos: ${error.message}`);
-        addToast("Erro ao carregar treinos", "error");
-        setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, [auth]);
+
+  // Fechar menu suspenso ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
       }
     };
 
-    fetchTrainings();
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
-  // Auto-advance carousel
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % 2);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const getCategoryColor = (category) => {
-    switch (category.toLowerCase()) {
-      case 'força':
-      case 'específico':
-        return 'from-blue-500 to-blue-600';
-      case 'cardio':
-      case 'hiit':
-      case 'desafio':
-        return 'from-red-500 to-orange-500';
-      case 'guia':
-      case 'suporte':
-        return 'from-green-500 to-teal-500';
-      default:
-        return 'from-purple-500 to-pink-500';
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsProfileMenuOpen(false);
+      navigate('/auth');
+    } catch (error) {
+      console.error("Erro ao fazer logout: ", error);
     }
   };
 
-  // Slides otimizados para o carousel - ESTRUTURA EXATA DO SEU CÓDIGO
-  const carouselSlides = [
-    <div key="slide1" className="relative overflow-hidden" style={{ height: '800px' }}>
-      <LazyImage
-        src="/BANNER PRINCIPAL/TREINOS-GRATIS.png"
-        alt="Team HIIT - Treinos Grátis"
-        className="w-full h-full"
-        style={{ objectFit: 'cover', objectPosition: 'center center' }}
-      />
-      <div className="absolute inset-0 bg-black/10"></div>
-    </div>,
-    <div key="slide2" className="relative overflow-hidden" style={{ height: '800px' }}>
-      <LazyImage
-        src="/BANNER PRINCIPAL/Indique-um-amigo.png"
-        alt="Team HIIT - Indique um Amigo"
-        className="w-full h-full"
-        style={{ objectFit: 'cover', objectPosition: 'center center' }}
-      />
-      <div className="absolute inset-0 bg-black/10"></div>
-    </div>
-  ];
-
-  const getTotalTrainings = () => {
-    return allSections.reduce((total, section) => total + section.trainings.length, 0);
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="skeleton h-48 rounded-lg mb-4 bg-gray-200 animate-pulse"></div>
-                <div className="skeleton h-6 rounded mb-2 bg-gray-200 animate-pulse"></div>
-                <div className="skeleton h-4 rounded mb-4 bg-gray-200 animate-pulse"></div>
-                <div className="skeleton h-10 rounded bg-gray-200 animate-pulse"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const toggleProfileMenu = () => {
+    setIsProfileMenuOpen(!isProfileMenuOpen);
+  };
+
+  const handleProfileMenuClick = (action) => {
+    setIsProfileMenuOpen(false);
+    
+    switch (action) {
+      case 'profile':
+        navigate('/profile');
+        break;
+      case 'journey':
+        navigate('/jornada-hiit');
+        break;
+      case 'settings':
+        // Navegar para configurações/gerenciar conta (quando implementada)
+        console.log('Navegar para Gerenciar Conta');
+        break;
+      case 'logout':
+        handleLogout();
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
-      <Header />
-      <ToastContainer />
-      
-      {/* Hero Carousel Otimizado - ESTRUTURA EXATA DO SEU CÓDIGO */}
-      <div className="w-full mb-8 animate-fade-in-up pt-20">
-        <div 
-          className="relative overflow-hidden"
-          style={{ height: '800px' }}
-        >
-          {/* Slides Container */}
+    <header className="bg-gray-900 text-white shadow-lg fixed top-0 left-0 right-0 z-50">
+      <div className="container mx-auto px-6">
+        <div className="flex justify-between items-center py-4">
+          {/* Logo */}
           <div 
-            className="flex transition-transform duration-500 ease-in-out h-full"
-            style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+            className="flex items-center space-x-3 cursor-pointer"
+            onClick={() => navigate('/dashboard')}
           >
-            {carouselSlides.map((slide, index) => (
-              <div key={index} className="w-full flex-shrink-0 h-full">
-                {slide}
-              </div>
-            ))}
+            {/* Logo Team HIIT */}
+            <img 
+              src="/fina.png" 
+              alt="Team HIIT Logo" 
+              className="h-8"
+            />
           </div>
 
-          {/* Navigation Arrows */}
-          <button
-            onClick={() => setCurrentSlide(currentSlide === 0 ? carouselSlides.length - 1 : currentSlide - 1)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm z-10"
-          >
-            ←
-          </button>
-          
-          <button
-            onClick={() => setCurrentSlide(currentSlide === carouselSlides.length - 1 ? 0 : currentSlide + 1)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm z-10"
-          >
-            →
-          </button>
-
-          {/* Dots Indicator */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
-            {carouselSlides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  index === currentSlide
-                    ? 'bg-white scale-125'
-                    : 'bg-white/50 hover:bg-white/75'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      {/* Main Content */}
-      <div className="container mx-auto px-6 py-8">
-
-        {/* Training Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gray-800 rounded-xl shadow-lg p-6 text-center card-hover animate-fade-in-up animate-delay-100">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full mb-4">
-              <TrendingUp className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">
-              {getTotalTrainings()}
-            </h3>
-            <p className="text-gray-400">Treinos Disponíveis</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-xl shadow-lg p-6 text-center card-hover animate-fade-in-up animate-delay-200">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-full mb-4">
-              <Award className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">12</h3>
-            <p className="text-gray-400">Treinos Concluídos</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-xl shadow-lg p-6 text-center card-hover animate-fade-in-up animate-delay-300">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mb-4">
-              <Zap className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">2,847</h3>
-            <p className="text-gray-400">Calorias Queimadas</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-xl shadow-lg p-6 text-center card-hover animate-fade-in-up animate-delay-400">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4">
-              <Clock className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">48h</h3>
-            <p className="text-gray-400">Tempo Total</p>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {message && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {message}
-          </div>
-        )}
-        
-        {/* Dynamic Sections com Lazy Loading - ESTRUTURA EXATA DO SEU CÓDIGO */}
-        {allSections.map((section, sectionIndex) => (
-          <div key={section.id} className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              {section.title === "CANAIS DE SUPORTE" ? "CRONOGRAMAS SEMANAIS" : section.title}
-            </h2>
-            {section.description && (
-              <p className="text-gray-400 mb-6">{section.description}</p>
-            )}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+            >
+              <Home className="w-4 h-4" />
+              <span>Dashboard</span>
+            </button>
             
-            {section.trainings.length > 0 ? (
-              <div className="overflow-x-auto pb-4 md:overflow-visible">
-                {/* LAYOUT HÍBRIDO EXATO DO SEU CÓDIGO */}
-                <div className="flex gap-8 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-8">
-                  {section.trainings.map((training, trainingIndex) => (
-                    <div
-                      key={training.id}
-                      className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex-shrink-0 w-72 md:w-auto flex flex-col aspect-[3/4]"
-                      onClick={() => navigate(`/trainings/${training.id}`)}
-                    >
-                      {/* ESTRUTURA EXATA DA IMAGEM DO SEU CÓDIGO */}
-                      <div className="relative flex-1">
-                        <LazyImage
-                          src={`/${training.imageUrl}`}
-                          alt={training.title}
-                          className="w-full h-full"
-                          style={{ objectFit: 'cover' }}
-                        />
-                      </div>
-                      
-                      {/* CONTEÚDO EXATO DO SEU CÓDIGO */}
-                      <div className="p-4 bg-white">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{training.title}</h3>
-                        <div className="flex items-center text-sm text-gray-500 mb-3">
-                          <Clock className="w-4 h-4 mr-1" />
-                          <span>{training.duration}</span>
-                          <span className="mx-2">•</span>
-                          <span>{training.level}</span>
+            <button
+              onClick={() => navigate(currentUser ? '/community' : '/auth')}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+            >
+              <Users className="w-4 h-4" />
+              <span>InstaHIIT</span>
+            </button>
+
+            {/* NOVA ABA NUTRIÇÃO */}
+            <button
+              onClick={() => navigate(currentUser ? '/nutrition' : '/auth')}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+            >
+              <Calculator className="w-4 h-4" />
+              <span>Nutrição</span>
+            </button>
+
+            {currentUser && (
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  onClick={toggleProfileMenu}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+                >
+                  {currentUser.photoURL ? (
+                    <img src={currentUser.photoURL} alt="Foto de Perfil" className="w-6 h-6 rounded-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
+                  <span>{currentUser.displayName || 'Usuário'}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Menu suspenso do perfil */}
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    {/* Cabeçalho do menu com nome do usuário */}
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                          {currentUser.photoURL ? (
+                            <img src={currentUser.photoURL} alt="Foto de Perfil" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <User className="w-4 h-4 text-white" />
+                          )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {training.categories.slice(0, 2).map(category => (
-                            <span 
-                              key={category} 
-                              className={`px-3 py-1 text-sm font-medium rounded-full text-white 
-                                bg-gradient-to-r ${getCategoryColor(category)}
-                              `}
-                            >
-                              {category}
-                            </span>
-                          ))}
-                        </div>
+                        <span className="font-medium text-gray-900">{currentUser.displayName || 'Usuário'}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                  <Search className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Nenhum treino encontrado</h3>
-                <p className="text-gray-600">Nenhum treino disponível nesta categoria no momento.</p>
+
+                    {/* Opções do menu */}
+                    <button
+                      onClick={() => handleProfileMenuClick('profile')}
+                      className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-700">Meu perfil</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleProfileMenuClick('journey')}
+                      className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <Trophy className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-700">Jornada HIIT</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleProfileMenuClick('settings')}
+                      className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <Settings className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-700">Gerenciar conta</span>
+                    </button>
+
+                    <div className="border-t border-gray-100 mt-2 pt-2">
+                      <button
+                        onClick={() => handleProfileMenuClick('logout')}
+                        className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200"
+                      >
+                        <LogOut className="w-4 h-4 text-red-500" />
+                        <span className="text-red-600">Sair</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+            
+            {!currentUser && (
+              <button
+                onClick={() => navigate('/auth')}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700 transition-colors duration-200"
+              >
+                <User className="w-4 h-4" />
+                <span>Entrar</span>
+              </button>
+            )}
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-700">
+            <nav className="space-y-2">
+              <button
+                onClick={() => {
+                  navigate('/dashboard');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
+              >
+                <Home className="w-5 h-5" />
+                <span>Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  navigate(currentUser ? '/community' : '/auth');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
+              >
+                <Users className="w-5 h-5" />
+                <span>InstaHIIT</span>
+              </button>
+
+              {/* NOVA ABA NUTRIÇÃO - MOBILE */}
+              <button
+                onClick={() => {
+                  navigate(currentUser ? '/nutrition' : '/auth');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
+              >
+                <Calculator className="w-5 h-5" />
+                <span>Nutrição</span>
+              </button>
+              
+              {currentUser && (
+                <>
+                  <button
+                    onClick={() => {
+                      navigate('/profile');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
+                  >
+                    {currentUser.photoURL ? (
+                      <img src={currentUser.photoURL} alt="Foto de Perfil" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )}
+                    <span>Meu perfil</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      navigate('/jornada-hiit');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
+                  >
+                    <Trophy className="w-5 h-5" />
+                    <span>Jornada HIIT</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      // Navegar para Gerenciar conta (quando implementada)
+                      console.log('Navegar para Gerenciar Conta');
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span>Gerenciar conta</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-3 bg-red-600 rounded-lg hover:bg-red-700 transition-colors duration-200 text-left"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span>Sair</span>
+                  </button>
+                </>
+              )}
+              {!currentUser && (
+                <button
+                  onClick={() => {
+                    navigate('/auth');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3 bg-red-600 rounded-lg hover:bg-red-700 transition-colors duration-200 text-left"
+                >
+                  <User className="w-5 h-5" />
+                  <span>Entrar</span>
+                </button>
+              )}
+            </nav>
           </div>
-        ))}
+        )}
       </div>
-    </div>
+    </header>
   );
 }
 
-export default Dashboard;
+export default Header;
 

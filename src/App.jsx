@@ -10,6 +10,7 @@ import JornadaHIIT from './pages/JornadaHIIT.jsx';
 import CalorieCalculator from './pages/CalorieCalculator.jsx';
 import NutritionHistory from './pages/NutritionHistory.jsx';
 import Header from './components/ui/Header.jsx';
+import ImagePreloader from './components/ImagePreloader.jsx';
 import { auth } from './firebaseConfig';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useToast } from './components/ui/Toast.jsx';
@@ -47,62 +48,69 @@ function PrivateRoute({ children }) {
 
 function AppContent() {
   const { ToastContainer } = useToast();
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
+
+  const handlePreloadComplete = () => {
+    setImagesPreloaded(true);
+  };
 
   return (
     <>
-      <Router>
-        <Header />
-        <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/trainings/:id" element={<TrainingDetail />} />
-          <Route path="/video/:moduleId/:videoId" element={<VideoPlayer />} />
-          <Route path="/video/:moduleId" element={<VideoPlayer />} />
-          <Route path="/player" element={<VideoPlayer />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route 
-            path="/community" 
-            element={
-              <PrivateRoute>
-                <Community />
-              </PrivateRoute>
-            }
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <PrivateRoute>
-                <Profile />
-              </PrivateRoute>
-            }
-          />
-          <Route 
-            path="/jornada-hiit" 
-            element={
-              <PrivateRoute>
-                <JornadaHIIT />
-              </PrivateRoute>
-            }
-          />
-          {/* NOVAS ROTAS DA CALCULADORA DE CALORIAS */}
-          <Route 
-            path="/nutrition" 
-            element={
-              <PrivateRoute>
-                <CalorieCalculator />
-              </PrivateRoute>
-            }
-          />
-          <Route 
-            path="/nutrition/history" 
-            element={
-              <PrivateRoute>
-                <NutritionHistory />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+      <ImagePreloader onLoadComplete={handlePreloadComplete}>
+        <Router>
+          <Header />
+          <Routes>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/trainings/:id" element={<VideoPlayer />} />
+            <Route path="/video/:moduleId/:videoId" element={<VideoPlayer />} />
+            <Route path="/video/:moduleId" element={<VideoPlayer />} />
+            <Route path="/player" element={<VideoPlayer />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route 
+              path="/community" 
+              element={
+                <PrivateRoute>
+                  <Community />
+                </PrivateRoute>
+              }
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
+            <Route 
+              path="/jornada-hiit" 
+              element={
+                <PrivateRoute>
+                  <JornadaHIIT />
+                </PrivateRoute>
+              }
+            />
+            {/* NOVAS ROTAS DA CALCULADORA DE CALORIAS */}
+            <Route 
+              path="/nutrition" 
+              element={
+                <PrivateRoute>
+                  <CalorieCalculator />
+                </PrivateRoute>
+              }
+            />
+            <Route 
+              path="/nutrition/history" 
+              element={
+                <PrivateRoute>
+                  <NutritionHistory />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Router>
+      </ImagePreloader>
       <ToastContainer />
     </>
   );

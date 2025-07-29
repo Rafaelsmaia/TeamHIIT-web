@@ -104,7 +104,7 @@ function Header() {
               className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
             >
               <Users className="w-4 h-4" />
-              <span>Comunidade</span>
+              <span>InstaHIIT</span>
             </button>
 
             {/* NOVA ABA NUTRIÇÃO */}
@@ -234,7 +234,7 @@ function Header() {
                 className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 text-left"
               >
                 <Users className="w-5 h-5" />
-                <span>Comunidade</span>
+                <span>InstaHIIT</span>
               </button>
 
               {/* NOVA ABA NUTRIÇÃO - MOBILE */}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getAuth, updateProfile, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Calendar, Trophy, Target, Award, Camera, Edit3, LogOut, Crown, Upload } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Trophy, Target, Award, Camera, Edit3, LogOut, Crown, Upload, Heart, MessageCircle, Share, Image as ImageIcon } from 'lucide-react';
 import Header from '../components/ui/Header.jsx';
 
 function Profile() {
@@ -18,6 +18,7 @@ function Profile() {
     completedWeeks: 0,
     achievements: 0
   });
+  const [userPosts, setUserPosts] = useState([]);
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -58,6 +59,9 @@ function Profile() {
               achievements: userData.achievements || 0
             });
           }
+
+          // Buscar postagens do usuário na comunidade
+          await fetchUserPosts(user.uid);
         } catch (error) {
           console.error('Erro ao buscar dados do usuário:', error);
         }
@@ -70,6 +74,33 @@ function Profile() {
 
     return () => unsubscribe();
   }, [auth, navigate]);
+
+  const fetchUserPosts = async (userId) => {
+    try {
+      const postsQuery = query(
+        collection(db, 'posts'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc'),
+        limit(6) // Mostrar apenas as 6 postagens mais recentes
+      );
+      
+      const querySnapshot = await getDocs(postsQuery);
+      const posts = [];
+      
+      querySnapshot.forEach((doc) => {
+        posts.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      setUserPosts(posts);
+    } catch (error) {
+      console.error('Erro ao buscar postagens do usuário:', error);
+      // Se houver erro (ex: coleção não existe), definir array vazio
+      setUserPosts([]);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -157,6 +188,16 @@ function Profile() {
       ...prev,
       [name]: value
     }));
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   if (loading) {
@@ -290,84 +331,153 @@ function Profile() {
             </button>
           </div>
 
-          {/* Informações da Conta */}
+          {/* InstaHIIT - Minhas Postagens */}
           <div className="bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-white">Informações da Conta</h3>
-              <button
-                onClick={() => setEditMode(!editMode)}
-                className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
-              >
-                <Edit3 size={16} />
-                {editMode ? 'Cancelar' : 'Editar'}
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
-                {editMode ? (
-                  <input
-                    type="text"
-                    name="displayName"
-                    value={formData.displayName}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    placeholder="Seu nome completo"
-                  />
-                ) : (
-                  <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
-                    <User className="text-gray-400" size={16} />
-                    <span className="text-gray-300">{formData.displayName || 'Não informado'}</span>
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
-                <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
-                  <Mail className="text-gray-400" size={16} />
-                  <span className="text-gray-300">{formData.email}</span>
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-pink-500 to-red-500 p-2 rounded-lg">
+                  <ImageIcon className="text-white" size={20} />
                 </div>
+                <h3 className="text-xl font-semibold text-white">InstaHIIT</h3>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
-                {editMode ? (
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="(11) 99999-9999"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  />
-                ) : (
-                  <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
-                    <Phone className="text-gray-400" size={16} />
-                    <span className="text-gray-300">{formData.phone || 'Não informado'}</span>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => navigate('/community')}
+                className="text-red-500 hover:text-red-400 transition-colors text-sm font-medium"
+              >
+                Ver todas
+              </button>
             </div>
             
-            {editMode && (
-              <button
-                onClick={handleSaveChanges}
-                disabled={uploading}
-                className="w-full mt-4 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar Alterações'
-                )}
-              </button>
+            {userPosts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {userPosts.slice(0, 6).map((post) => (
+                    <div key={post.id} className="aspect-square bg-gray-700 rounded-lg overflow-hidden relative group cursor-pointer">
+                      {post.imageUrl ? (
+                        <img 
+                          src={post.imageUrl} 
+                          alt="Post" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="text-gray-500" size={24} />
+                        </div>
+                      )}
+                      
+                      {/* Overlay com informações */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div className="flex items-center gap-4 text-white text-sm">
+                          <div className="flex items-center gap-1">
+                            <Heart size={16} />
+                            <span>{post.likes || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageCircle size={16} />
+                            <span>{post.comments?.length || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="text-center text-gray-400 text-sm">
+                  {userPosts.length} postagem{userPosts.length !== 1 ? 's' : ''} no InstaHIIT
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <ImageIcon className="mx-auto text-gray-500 mb-3" size={48} />
+                <p className="text-gray-400 mb-4">Você ainda não fez nenhuma postagem</p>
+                <button
+                  onClick={() => navigate('/community')}
+                  className="bg-gradient-to-r from-pink-600 to-red-600 text-white py-2 px-4 rounded-lg hover:from-pink-700 hover:to-red-700 transition-all duration-200 font-medium"
+                >
+                  Fazer primeira postagem
+                </button>
+              </div>
             )}
           </div>
+        </div>
+
+        {/* Informações da Conta */}
+        <div className="bg-gray-800 rounded-xl shadow-lg p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold text-white">Informações da Conta</h3>
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors"
+            >
+              <Edit3 size={16} />
+              {editMode ? 'Cancelar' : 'Editar'}
+            </button>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Nome Completo</label>
+              {editMode ? (
+                <input
+                  type="text"
+                  name="displayName"
+                  value={formData.displayName}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Seu nome completo"
+                />
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
+                  <User className="text-gray-400" size={16} />
+                  <span className="text-gray-300">{formData.displayName || 'Não informado'}</span>
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+              <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
+                <Mail className="text-gray-400" size={16} />
+                <span className="text-gray-300">{formData.email}</span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Telefone</label>
+              {editMode ? (
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="(11) 99999-9999"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-gray-700 rounded-lg">
+                  <Phone className="text-gray-400" size={16} />
+                  <span className="text-gray-300">{formData.phone || 'Não informado'}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {editMode && (
+            <button
+              onClick={handleSaveChanges}
+              disabled={uploading}
+              className="w-full mt-4 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {uploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Salvando...
+                </>
+              ) : (
+                'Salvar Alterações'
+              )}
+            </button>
+          )}
         </div>
 
         {/* Gerenciar Assinatura */}
@@ -423,3 +533,4 @@ function Profile() {
 }
 
 export default Profile;
+
