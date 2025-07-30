@@ -68,23 +68,39 @@ function Dashboard() {
     }
   };
 
-  // Slides otimizados para o carousel
+  // Slides otimizados para o carousel com proporção correta
   const carouselSlides = [
-    <div key="slide1" className="relative overflow-hidden" style={{ height: '800px' }}>
+    <div key="slide1" className="relative overflow-hidden w-full aspect-[4/5] md:aspect-[16/9] md:h-[800px]">
+      {/* Banner Desktop */}
       <LazyImage
         src="/BANNER PRINCIPAL/TREINOS-GRATIS.png"
         alt="Team HIIT - Treinos Grátis"
-        className="w-full h-full"
+        className="w-full h-full hidden md:block"
         style={{ objectFit: 'cover', objectPosition: 'center center' }}
+      />
+      {/* Banner Mobile Vertical - Proporção 1080x1350 (4:5) */}
+      <LazyImage
+        src="/BANNER PRINCIPAL/TREINOS-GRATIS-vertical.png"
+        alt="Team HIIT - Treinos Grátis"
+        className="w-full h-full block md:hidden"
+        style={{ objectFit: 'contain', objectPosition: 'center center' }}
       />
       <div className="absolute inset-0 bg-black/10"></div>
     </div>,
-    <div key="slide2" className="relative overflow-hidden" style={{ height: '800px' }}>
+    <div key="slide2" className="relative overflow-hidden w-full aspect-[4/5] md:aspect-[16/9] md:h-[800px]">
+      {/* Banner Desktop */}
       <LazyImage
         src="/BANNER PRINCIPAL/Indique-um-amigo.png"
         alt="Team HIIT - Indique um Amigo"
-        className="w-full h-full"
+        className="w-full h-full hidden md:block"
         style={{ objectFit: 'cover', objectPosition: 'center center' }}
+      />
+      {/* Banner Mobile Vertical - Proporção 1080x1350 (4:5) */}
+      <LazyImage
+        src="/BANNER PRINCIPAL/Indique-um-amigo-vertical.png"
+        alt="Team HIIT - Indique um Amigo"
+        className="w-full h-full block md:hidden"
+        style={{ objectFit: 'contain', objectPosition: 'center center' }}
       />
       <div className="absolute inset-0 bg-black/10"></div>
     </div>
@@ -115,12 +131,9 @@ function Dashboard() {
       <Header />
       <ToastContainer />
       
-      {/* Hero Carousel Otimizado */}
+      {/* Hero Carousel com Proporção Correta */}
       <div className="w-full mb-8 animate-fade-in-up pt-20">
-        <div 
-          className="relative overflow-hidden"
-          style={{ height: '800px' }}
-        >
+        <div className="relative overflow-hidden w-full aspect-[4/5] md:aspect-[16/9] md:h-[800px]">
           {/* Slides Container */}
           <div 
             className="flex transition-transform duration-500 ease-in-out h-full"

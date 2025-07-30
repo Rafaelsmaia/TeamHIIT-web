@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/icone team hiit.png" />
+    
+    <!-- VIEWPORT PARA PWA COM NOTCH -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#111827" />
+    <meta name="background-color" content="#111827" />
+    <meta name="description" content="Plataforma de treinos HIIT personalizados com acesso exclusivo para membros" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple Touch Icons - MÚLTIPLOS TAMANHOS COM URL ENCODING -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="60x60" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icone team hiit.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icone team hiit.png" />
+    
+    <!-- Apple PWA Meta Tags - STATUS BAR TRANSLUCENT -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Team HIIT" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    
+    <!-- Prevenir zoom e garantir layout fixo -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#111827" />
+    <meta name="msapplication-TileImage" content="/icone team hiit.png" />
+    
+    <!-- SEO Meta Tags -->
+    <meta property="og:title" content="Team HIIT - Treinos Personalizados" />
+    <meta property="og:description" content="Plataforma de treinos HIIT personalizados com acesso exclusivo para membros" />
+    <meta property="og:image" content="/icone team hiit.png" />
+    <meta property="og:type" content="website" />
+    
+    <title>Team HIIT - Treinos Personalizados</title>
+    
+    <!-- CSS INLINE PARA GARANTIR QUE SEJA APLICADO IMEDIATAMENTE -->
+    <style>
+      /* Reset imediato para PWA */
+      html, body {
+        padding: 0 !important;
+        margin: 0 !important;
+        background-color: #111827 !important;
+        height: 100% !important;
+        overflow-x: hidden !important;
+      }
+      
+      #root {
+        padding: 0 !important;
+        margin: 0 !important;
+        background-color: #111827 !important;
+      }
+      
+      /* PWA com status bar translucent */
+      @media (display-mode: standalone) {
+        body {
+          background-color: #111827 !important;
+          padding-top: 0 !important;
+        }
+        
+        /* Header ocupa TODA a tela incluindo status bar */
+        header {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          width: 100% !important;
+          z-index: 50 !important;
+          background-color: #111827 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          /* Header vai até o topo absoluto da tela */
+          padding-top: env(safe-area-inset-top, 44px) !important;
+        }
+        
+        /* Conteúdo principal compensado */
+        main, .main-content, .content {
+          padding-top: calc(4rem + env(safe-area-inset-top, 44px)) !important;
+          margin-top: 0 !important;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DbcmfrUG.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-lRiuT1Vm.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #FF4500; color: white; padding: 16px; text-align: center; z-index: 1000;">
+      <p style="margin: 0 0 8px 0;">Instale o Team HIIT na sua tela inicial!</p>
+      <button id="pwa-install-btn" style="background: white; color: #FF4500; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer;">
+        Instalar App
+      </button>
+      <button id="pwa-dismiss-btn" style="background: transparent; color: white; border: 1px solid white; padding: 8px 16px; border-radius: 4px; margin-left: 8px; cursor: pointer;">
+        Agora Não
+      </button>
+    </div>
+    
+    <!-- Trainings Data -->
+    <script src="/trainings.js"></script>
+    
+    
+    <!-- PWA Installation Script -->
+    <script>
+      let deferredPrompt;
+      const installBanner = document.getElementById('pwa-install-banner');
+      const installBtn = document.getElementById('pwa-install-btn');
+      const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+      // Detectar se PWA pode ser instalado
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Mostrar banner de instalação após 3 segundos
+        setTimeout(() => {
+          if (!window.matchMedia('(display-mode: standalone)').matches) {
+            installBanner.style.display = 'block';
+          }
+        }, 3000);
+      });
+
+      // Instalar PWA
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`PWA installation: ${outcome}`);
+          deferredPrompt = null;
+          installBanner.style.display = 'none';
+        }
+      });
+
+      // Dispensar banner
+      dismissBtn.addEventListener('click', () => {
+        installBanner.style.display = 'none';
+      });
+
+      // Registrar Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registrado com sucesso:', registration.scope);
+            })
+            .catch((error) => {
+              console.log('Falha ao registrar SW:', error);
+            });
+        });
+      }
+
+      // Detectar se está rodando como PWA e aplicar fixes
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          console.log('Rodando como PWA - Status bar translucent ativo');
+          document.body.classList.add('pwa-mode');
+          document.body.style.backgroundColor = '#111827';
+          
+          // Garantir que o header ocupe toda a tela
+          setTimeout(() => {
+            const header = document.querySelector('header');
+            if (header) {
+              header.style.position = 'fixed';
+              header.style.top = '0';
+              header.style.left = '0';
+              header.style.right = '0';
+              header.style.width = '100%';
+              header.style.zIndex = '50';
+              header.style.backgroundColor = '#111827';
+              header.style.margin = '0';
+              header.style.padding = '0';
+              header.style.paddingTop = 'env(safe-area-inset-top, 44px)';
+            }
+          }, 100);
+        }
+      });
+    </script>
+  </body>
+</html>
+

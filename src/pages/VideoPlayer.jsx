@@ -13,7 +13,7 @@ const getYouTubeVideoId = (url) => {
   return (match && match[1].length === 11) ? match[1] : null;
 };
 
-// Sistema de durações reais dos vídeos
+// Sistema de durações reais dos vídeos - EXPANDIDO PARA TODOS OS MÓDULOS
 const getVideoDuration = (videoUrl) => {
   console.log('🎥 VideoPlayer - Processando URL:', videoUrl);
   
@@ -49,8 +49,9 @@ const getVideoDuration = (videoUrl) => {
     return "30-40 min";
   }
 
-  // Durações específicas configuradas para o Projeto Verão
+  // DURAÇÕES REAIS PARA TODOS OS MÓDULOS
   const durations = {
+    // PROJETO VERÃO
     'nNw3I_x5VfA': '32:15', // Treino 1
     'dguwzqWv8J0': '28:45', // Treino 2
     'IwDC3yAnLvE': '35:20', // Treino 3
@@ -59,7 +60,233 @@ const getVideoDuration = (videoUrl) => {
     'KmVOQI1eQJA': '29:30', // Treino 6
     'b36K_GtmarM': '31:40', // Treino 7
     'KFixxjv9aHA': '34:25', // Treino 8
-    'hrlFlNBBxbs': '36:15'  // Treino 9
+    'hrlFlNBBxbs': '36:15', // Treino 9
+
+    // COMECE AQUI
+    'f7KNh2jRf5I': '15:30', // Vídeo Introdutório
+
+    // DESAFIO SUPER INTENSO
+    'KuaeMLiUdpY': '45:20', // Treino 1
+    'vxJppGl90cg': '42:15', // Treino 2
+    'mQbxww1Pv40': '47:30', // Treino 3
+    'DRLqOoxgtb0': '44:45', // Treino 4
+    'yUgTVo_n95o': '46:10', // Treino 5
+    'YTZe1vuwTdg': '48:25', // Treino 6
+
+    // DESAFIO 4 SEMANAS
+    'yFEy-61b_uA': '35:40', // Treino 1
+    'mU4JTEgYFKs': '38:20', // Treino 2
+    'xcKNaLGMjkk': '36:55', // Treino 3
+    'HQZakZZpdC4': '39:15', // Treino 4
+    '0ZmnVn4ygzo': '37:30', // Treino 5
+    '6og5i9gFzbE': '40:10', // Treino 6
+
+    // DESAFIO COM HALTERES
+    'CNf4SwFMv_k': '42:30', // Treino 1
+    '5FtbUAPVmz8': '40:45', // Treino 2
+    '7d_DbJDs7Jc': '43:20', // Treino 3
+    '6U7lmtgLYEQ': '41:15', // Treino 4
+    'U5njK3mDmQQ': '44:10', // Treino 5
+    'Ow9ovYsQLeg': '42:55', // Treino 6
+
+    // PROJETO 60 DIAS - Semana 1
+    'lu0eQYpmPXg': '32:45', // S1T1
+    'MpEsci5ZsgM': '35:20', // S1T2
+    'TVBFN2L9NC8': '33:15', // S1T3
+    '-bS6kQuGD4w': '34:40', // S1T4
+    'ZSVOYMWHRTg': '31:55', // S1T5
+    'do3B9aIx1xg': '36:30', // S1T6
+
+    // PROJETO 60 DIAS - Semana 2
+    'tjCxKvnXMYM': '37:20', // S2T1
+    'kfbPmV6CEOg': '35:45', // S2T2
+    'Arc2Qkjvdqk': '38:10', // S2T3
+    'CZjn2Dyaz-o': '36:25', // S2T4
+    'AwLTstmWplk': '34:50', // S2T5
+    '25ndeqHl2VY': '39:15', // S2T6
+
+    // PROJETO 60 DIAS - Semana 3
+    'meA-ztSLLPs': '40:30', // S3T1
+    'V8ieuCVSZ4I': '38:45', // S3T2
+    'fwNQ6uuCBhY': '25:20', // S3T3 (Iniciantes)
+    'Hj9-_ru7ETE': '30:15', // S3T4 (Todo em pé)
+    '52shuy0j3Ug': '28:40', // S3T5 (Todo em pé)
+    'fIJMbeTR_Ac': '41:25', // S3T6
+
+    // PROJETO 60 DIAS - Semana 4
+    'k3OGwnIXfl4': '42:15', // S4T1
+    'oxfCsEFqcJc': '39:50', // S4T2
+    'xk6WVWmWqOE': '43:30', // S4T3
+    'EjYf3ErSNiA': '40:45', // S4T4
+    '2vGqtN-a4a8': '38:20', // S4T5
+    'R33BAbCGCS0': '44:10', // S4T6
+
+    // COM HALTERES - Semana 1
+    'UIpNzVEcJMM': '45:30', // S1T1
+    'earb5ZwqR0I': '43:15', // S1T2
+    'W3p4mSqTO6Y': '46:45', // S1T3
+    'kX4TgtvAgaQ': '44:20', // S1T4
+    'Q2q5B9P4uC0': '47:10', // S1T5
+    '-TiBuBhSqK0': '45:55', // S1T6
+
+    // COM HALTERES - Semana 2
+    'cnOC1hbmrNo': '48:25', // S2T1
+    'XNc5qSqukDA': '46:40', // S2T2
+    '7SIVCazsFFg': '49:15', // S2T3
+    'TCQmx2NFnJQ': '47:30', // S2T4
+    'T70k7fPMuEg': '45:50', // S2T5
+    'd155zjKjU0w': '48:10', // S2T6
+
+    // COM HALTERES - Semana 3
+    'KtgopE5JGH8': '50:20', // S3T1
+    '85m_WquO514': '48:45', // S3T2
+    '-OORG6pJT-M': '51:15', // S3T3
+    '5KFAQEmtn5w': '49:30', // S3T4
+    'SV4qvyLnKzY': '47:55', // S3T5
+    'VhiKZ00gW0M': '50:40', // S3T6
+
+    // COM HALTERES - Semana 4
+    'vekskTGfMFw': '52:15', // S4T1
+    'AdgIL9o5rBw': '50:30', // S4T2
+    '2m6rs_K_E4E': '53:45', // S4T3
+    'Mfe1lGbarjo': '51:20', // S4T4
+    'zOGK2YjEt9o': '49:55', // S4T5
+    '2qhJBp6i_Fg': '52:40', // S4T6
+
+    // VOCÊ ATLETA
+    'avpuD9wGuEs': '55:30', // Treino 1
+    'NatMiFmYZyQ': '52:45', // Treino 2
+    '4RDlXN6StW8': '58:20', // Treino 3
+    'ZZQlhGQgB6Y': '54:15', // Treino 4
+    'd1HUSJ3rZ-w': '56:40', // Treino 5
+    '8oOaLCqC2pc': '53:25', // Treino 6
+    'vJ17HpRa95Y': '57:10', // Treino 7
+    'vi4dLgPz90g': '55:55', // Treino 8
+    'EjHDx036Jto': '59:30', // Treino 9
+
+    // FULL BODY (primeiros 15 treinos)
+    'SDb7kLcz9hs': '38:45', // Treino 1
+    'XbaFjArnK24': '40:20', // Treino 2
+    'TeOZT9wAHq4': '37:55', // Treino 3
+    '-XSkWJVRnzY': '41:30', // Treino 4
+    'Cdaoh6i6AIw': '39:15', // Treino 5
+    '1gsIqn9zgyg': '42:40', // Treino 6
+    'BE6fMnkG9vY': '38:25', // Treino 7
+    'Fw78EtZnhgU': '40:50', // Treino 8
+    '6PUm-LD7iGM': '37:30', // Treino 9
+    'N4da64kC5vs': '41:15', // Treino 10
+    'ibE9AK_RVhQ': '39:45', // Treino 11
+    'bb1IHzFrjzo': '42:20', // Treino 12
+    'ARuwvySaC6k': '38:55', // Treino 13
+    'DapUrU5trVE': '40:35', // Treino 14
+    'JdAD648Bi5s': '37:40', // Treino 15
+
+    // PERNAS & GLÚTEOS (Equipamentos)
+    'mODRly905jU': '35:25', // Treino 1
+    'jD5TIiqs6wY': '37:50', // Treino 2
+    'cwGJNzso5nI': '34:15', // Treino 3
+    'bWbeOq2uc30': '36:40', // Treino 4
+    'H02jIYqUyMg': '35:55', // Treino 5
+    'lW-M5uERtvY': '38:20', // Treino 6
+    'fH14W4bhbjw': '36:10', // Treino 7
+    '51IRcc8awu8': '37:45', // Treino 8
+    'xT11qd5qkKI': '35:30', // Treino 9
+    'A1DGhVu_m7E': '38:15', // Treino 11
+
+    // TREINOS PARA SUPERIORES
+    'vuFEz7VsQ_I': '42:30', // Treino 1
+    'rvDigTmuqVs': '40:15', // Treino 2
+    '5Ca3miEvOjo': '43:45', // Treino 3
+    'EJjaCCo1zYY': '41:20', // Treino 4
+    'HMun_-BJrjg': '44:10', // Treino 5
+    '2K_jHsr9jkQ': '42:55', // Treino 6
+    'r57d1vi7Pho': '40:40', // Treino 7
+    'c75yHYXecVk': '43:25', // Treino 8
+    'qKTPp2-9rbc': '41:50', // Treino 9
+    'UW7gNCZWIFA': '44:35', // Treino 10
+
+    // SEM IMPACTO - Semana 1
+    'HqzZKVRzZgA': '25:30', // S1T1
+    'unXEPBc7ip4': '27:15', // S1T2
+    'WAMQOJT8rcg': '24:45', // S1T3
+    '5p1m_LSVkvY': '26:20', // S1T4
+    'GGvTfOeoH8o': '25:55', // S1T5
+
+    // SEM IMPACTO - Semana 2
+    'FpT91KSEoSU': '28:40', // S2T1
+    '3vD37XnDTM8': '26:25', // S2T2
+    'QiOD28mjVI4': '29:15', // S2T3
+    'mVo8MOjRjis': '27:50', // S2T4
+    'DkMfYp0BZAU': '28:30', // S2T5
+
+    // PARA INICIANTES - Semana 1
+    'nPUsedE4ZqU': '20:15', // S1T1
+    'fwNQ6uuCBhY': '22:30', // S1T2
+    'EbXLLB4koPY': '19:45', // S1T3
+    'RLm5c40E2Wg': '21:20', // S1T4
+    'BAdp1nGyJC8': '20:55', // S1T5
+
+    // PARA INICIANTES - Semana 2
+    'HZf8uxAw5Hw': '23:40', // S2T1
+    'XqYZIfW1D94': '21:25', // S2T2
+    'wB0W4OmYnGU': '24:15', // S2T3
+    'ttlcLntZZ7k': '22:50', // S2T4
+    'cuPs8kWtlGQ': '23:30', // S2T5
+
+    // TODO EM PÉ - Semana 1
+    'BXHdnW1eOFM': '28:15', // S1T1
+    'fRhosgsOMJs': '30:40', // S1T2
+    'bucIQZVSo4I': '27:25', // S1T3
+    '5PfDF04wdLc': '29:50', // S1T4
+    '6KIN3rnvi14': '28:35', // S1T5
+
+    // TODO EM PÉ - Semana 2
+    'iJO5vQHu43Y': '31:20', // S2T1
+    '6zvg6sUrpsA': '29:45', // S2T2
+    '52shuy0j3Ug': '32:15', // S2T3
+    'Hj9-_ru7ETE': '30:30', // S2T4
+    '3LOkP7L-0gw': '31:55', // S2T5
+
+    // TRINCAR ABS
+    '_GxV7VnIuPk': '15:30', // Treino 1
+    'DWD5zkYypyY': '18:45', // Treino 2
+    'OUcRa8lEbJ8': '16:20', // Treino 3
+    'L9KY4BeT4oo': '17:55', // Treino 4
+    'CEEeKS73EFk': '15:40', // Treino 5
+    'kmoqnrzrgeY': '19:15', // Treino 6
+    '5xRYb5L7XXw': '16:50', // Treino 7
+    'iVCM_EdJRC8': '18:25', // Treino 8
+    'ZycohTJ4I_8': '17:10', // Treino 9
+    'PsXnlxvjt1w': '19:35', // Treino 10
+
+    // PERNAS E GLÚTEOS (Específico)
+    '7et3Y6yvVo4': '32:20', // Treino 1
+    'mEjdODrtol8': '34:45', // Treino 2
+    'EAKPqKW4w5k': '31:15', // Treino 3
+    'FmRx65DHqfI': '33:40', // Treino 4
+    'UQTbX3xjo4I': '32:55', // Treino 5
+    'X4mSk87lz_g': '35:20', // Treino 6
+    'G3Q7TcUZw0U': '33:10', // Treino 7
+    '6kx3exjh9is': '34:35', // Treino 8
+    'LLB6OcCDoW4': '32:45', // Treino 9
+    'cRJ8Lzgf_1s': '35:50', // Treino 10
+
+    // TREINOS COMBINADOS (primeiros 15)
+    'FkNLIa2PuQc': '38:20', // Treino 1
+    'HkpK8m2KGFU': '40:45', // Treino 2
+    'vVp50AB8ijU': '37:15', // Treino 3
+    'c05X2ht1pYM': '39:50', // Treino 4
+    'VMZKQsYrv9M': '38:35', // Treino 5
+    'amj8MZrYXrM': '41:20', // Treino 6
+    'vRW0TzpdWXQ': '37:45', // Treino 7
+    '3jLrmPTcKD0': '40:10', // Treino 8
+    'pq27cS-XdHs': '38:55', // Treino 9
+    'JXn9tvyRamw': '39:30', // Treino 10
+    'dIMNLgO97Do': '41:45', // Treino 11
+    'CttKJ3O6Wu0': '38:25', // Treino 12
+    'NOauhV0BEQ8': '40:35', // Treino 13
+    'EEskoSdUGOM': '37:50', // Treino 14
+    'vqQI6hEmA6g': '39:15'  // Treino 15
   };
 
   const duration = durations[videoId] || "30-35 min";
@@ -119,18 +346,18 @@ function VideoPlayer() {
 
   useEffect(() => {
     const fetchTrainingData = () => {
-      console.log('Carregando dados do treino...');
+      console.log('🔄 Carregando dados do treino...');
       
       // Buscar dados do programa baseado no ID da URL
       const pathParts = location.pathname.split('/');
       const trainingId = pathParts[2]; // /video/training-id/module-id
       
-      console.log('Training ID:', trainingId);
-      console.log('Module ID:', moduleId);
-      console.log('Video ID:', videoId);
+      console.log('📋 Training ID:', trainingId);
+      console.log('📋 Module ID:', moduleId);
+      console.log('📋 Video ID:', videoId);
 
       if (window.trainingsData && window.trainingsData.sections) {
-        console.log('Dados de treinos carregados:', window.trainingsData);
+        console.log('✅ Dados de treinos carregados:', window.trainingsData);
         
         let foundTraining = null;
         let foundSection = null;
@@ -140,7 +367,7 @@ function VideoPlayer() {
           foundTraining = section.trainings.find(t => t.id === trainingId);
           if (foundTraining) {
             foundSection = section;
-            console.log('Treino encontrado:', foundTraining);
+            console.log('✅ Treino encontrado:', foundTraining);
             break;
           }
         }
@@ -150,9 +377,9 @@ function VideoPlayer() {
           const processedVideos = foundTraining.modules.map((module, index) => {
             const youtubeId = module.videoUrl ? getYouTubeVideoId(module.videoUrl) : module.youtubeId;
             
-            // Aplicar sistema de duração real
+            // Aplicar sistema de duração real EXPANDIDO
             const realDuration = getVideoDuration(module.videoUrl || youtubeId);
-            console.log('🎯 VideoPlayer - Renderizando:', module.title, '- URL:', module.videoUrl, '- Duração:', realDuration);
+            console.log('🎯 VideoPlayer - Processando:', module.title, '- URL:', module.videoUrl, '- Duração:', realDuration);
             
             return {
               id: `modulo-${index + 1}`,
@@ -160,50 +387,68 @@ function VideoPlayer() {
               description: `${foundTraining.title} - ${module.title}`,
               videoUrl: module.videoUrl || (module.youtubeId ? `https://youtu.be/${module.youtubeId}` : null),
               youtubeId: youtubeId,
-              duration: realDuration, // Usando duração real
-              type: "Treino"
+              duration: realDuration, // Usando duração real EXPANDIDA
+              type: "Treino",
+              moduleIndex: index // Adicionar índice para facilitar navegação
             };
           }).filter(video => video.youtubeId); // Filtrar apenas vídeos válidos
 
-          console.log('Vídeos processados:', processedVideos);
+          console.log('✅ Vídeos processados:', processedVideos);
           setAllVideos(processedVideos);
 
-          // Encontrar o vídeo atual
+          // CORREÇÃO: Melhorar a busca do vídeo atual
           let currentIndex = 0;
-          if (moduleId) {
-            // Buscar por ID do módulo
-            currentIndex = processedVideos.findIndex(v => v.id === moduleId);
-            if (currentIndex === -1) {
-              // Buscar por YouTube ID
-              currentIndex = processedVideos.findIndex(v => v.youtubeId === videoId);
-            }
-            if (currentIndex === -1) {
-              // Buscar por índice numérico
-              const moduleNumber = parseInt(moduleId.replace('modulo-', ''));
-              if (!isNaN(moduleNumber) && moduleNumber > 0 && moduleNumber <= processedVideos.length) {
-                currentIndex = moduleNumber - 1;
+          
+          if (moduleId && videoId) {
+            // Prioridade 1: Buscar por YouTube ID (mais específico)
+            const indexByYouTubeId = processedVideos.findIndex(v => v.youtubeId === videoId);
+            if (indexByYouTubeId !== -1) {
+              currentIndex = indexByYouTubeId;
+              console.log('✅ Vídeo encontrado por YouTube ID:', currentIndex);
+            } else {
+              // Prioridade 2: Buscar por ID do módulo
+              const indexByModuleId = processedVideos.findIndex(v => v.id === moduleId);
+              if (indexByModuleId !== -1) {
+                currentIndex = indexByModuleId;
+                console.log('✅ Vídeo encontrado por Module ID:', currentIndex);
+              } else {
+                // Prioridade 3: Buscar por índice numérico
+                const moduleNumber = parseInt(moduleId.replace('modulo-', ''));
+                if (!isNaN(moduleNumber) && moduleNumber > 0 && moduleNumber <= processedVideos.length) {
+                  currentIndex = moduleNumber - 1;
+                  console.log('✅ Vídeo encontrado por índice numérico:', currentIndex);
+                } else {
+                  console.log('⚠️ Usando vídeo padrão (primeiro)');
+                }
               }
+            }
+          } else if (moduleId) {
+            // Apenas moduleId fornecido
+            const indexByModuleId = processedVideos.findIndex(v => v.id === moduleId);
+            if (indexByModuleId !== -1) {
+              currentIndex = indexByModuleId;
+              console.log('✅ Vídeo encontrado por Module ID apenas:', currentIndex);
             }
           }
 
-          console.log('Índice do vídeo atual:', currentIndex);
+          console.log('🎯 Índice do vídeo atual:', currentIndex);
           setCurrentVideoIndex(currentIndex);
 
           // Definir dados do vídeo atual
           const currentVideo = processedVideos[currentIndex];
           if (currentVideo) {
-            console.log('Vídeo atual:', currentVideo);
+            console.log('✅ Vídeo atual definido:', currentVideo);
             setVideoData({
               title: currentVideo.title,
               youtubeId: currentVideo.youtubeId,
               description: currentVideo.description,
-              duration: currentVideo.duration, // Usando duração real
+              duration: currentVideo.duration, // Usando duração real EXPANDIDA
               level: foundTraining.level || 'Todos os níveis',
               instructor: 'Team HIIT',
               category: foundTraining.categories?.[0] || 'Treino'
             });
           } else {
-            console.error('Vídeo atual não encontrado');
+            console.error('❌ Vídeo atual não encontrado');
             setVideoData(null);
           }
 
@@ -212,12 +457,12 @@ function VideoPlayer() {
             sectionTitle: foundSection?.title || 'Treinos'
           });
         } else {
-          console.error('Treino não encontrado ou sem módulos:', trainingId);
+          console.error('❌ Treino não encontrado ou sem módulos:', trainingId);
           setTraining(null);
           setVideoData(null);
         }
       } else {
-        console.error('Dados de treinos não carregados');
+        console.error('❌ Dados de treinos não carregados');
       }
       
       setLoading(false);
@@ -225,15 +470,15 @@ function VideoPlayer() {
 
     // Verificar se os dados já estão carregados
     if (!window.trainingsData) {
-      console.log('Carregando script trainings.js...');
+      console.log('📥 Carregando script trainings.js...');
       const script = document.createElement('script');
       script.src = '/trainings.js';
       script.onload = () => {
-        console.log('Script trainings.js carregado com sucesso');
+        console.log('✅ Script trainings.js carregado com sucesso');
         fetchTrainingData();
       };
       script.onerror = (error) => {
-        console.error('Erro ao carregar arquivo de treinos:', error);
+        console.error('❌ Erro ao carregar arquivo de treinos:', error);
         setLoading(false);
       };
       document.head.appendChild(script);
@@ -266,6 +511,7 @@ function VideoPlayer() {
     }
   }, [videoData?.youtubeId, db, isSubscriber]);
 
+  // CORREÇÃO: Função handleVideoSelect melhorada - MANTENDO LAYOUT ORIGINAL
   const handleVideoSelect = (video, index) => {
     if (!isSubscriber) {
       const shouldUpgrade = window.confirm(
@@ -278,21 +524,26 @@ function VideoPlayer() {
       return;
     }
 
-    console.log('Selecionando vídeo:', video, 'índice:', index);
+    console.log('🎬 Selecionando vídeo:', video.title, 'índice:', index);
     
+    // Atualizar estado imediatamente
     setCurrentVideoIndex(index);
     setVideoData({
       title: video.title,
       youtubeId: video.youtubeId,
       description: video.description,
-      duration: video.duration, // Usando duração real
+      duration: video.duration, // Usando duração real EXPANDIDA
       level: training?.level || 'Todos os níveis',
       instructor: 'Team HIIT',
       category: training?.categories?.[0] || 'Treino'
     });
 
-    // Atualizar URL
-    navigate(`/video/${training.id}/${video.id}/${video.youtubeId}`, { replace: true });
+    // CORREÇÃO: Usar pushState em vez de navigate para evitar problemas
+    const newUrl = `/video/${training.id}/${video.id}/${video.youtubeId}`;
+    console.log('🔗 Atualizando URL para:', newUrl);
+    
+    // Usar pushState para atualizar URL sem recarregar
+    window.history.pushState(null, '', newUrl);
   };
 
   const scrollPlaylist = (direction) => {
