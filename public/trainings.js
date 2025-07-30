@@ -65,15 +65,15 @@ window.trainingsData = {
           categories: ["Especial"],
           imageUrl: "CAPAS TEAM HIIT/projeto-verao.jpg",
           modules: [
-            { title: "Módulo 1", videoUrl: "https://youtu.be/nNw3I_x5VfA" },
-            { title: "Módulo 2", videoUrl: "https://youtu.be/dguwzqWv8J0" },
-            { title: "Módulo 3", videoUrl: "https://youtu.be/IwDC3yAnLvE" },
-            { title: "Módulo 4", videoUrl: "https://youtu.be/1_jzxLkuM_c" },
-            { title: "Módulo 5", videoUrl: "https://youtu.be/h_D85tk5Xtc" },
-            { title: "Módulo 6", videoUrl: "https://youtu.be/KmVOQI1eQJA" },
-            { title: "Módulo 7", videoUrl: "https://youtu.be/b36K_GtmarM" },
-            { title: "Módulo 8", videoUrl: "https://youtu.be/KFixxjv9aHA" },
-            { title: "Módulo 9", videoUrl: "https://youtu.be/hrlFlNBBxbs" }
+            { title: "Treino 1", videoUrl: "https://youtu.be/nNw3I_x5VfA" },
+            { title: "Treino 2", videoUrl: "https://youtu.be/dguwzqWv8J0" },
+            { title: "Treino 3", videoUrl: "https://youtu.be/IwDC3yAnLvE" },
+            { title: "Treino 4", videoUrl: "https://youtu.be/1_jzxLkuM_c" },
+            { title: "Treino 5", videoUrl: "https://youtu.be/h_D85tk5Xtc" },
+            { title: "Treino 6", videoUrl: "https://youtu.be/KmVOQI1eQJA" },
+            { title: "Treino 7", videoUrl: "https://youtu.be/b36K_GtmarM" },
+            { title: "Treino 8", videoUrl: "https://youtu.be/KFixxjv9aHA" },
+            { title: "Treino 9", videoUrl: "https://youtu.be/hrlFlNBBxbs" }
           ]
         }
       ]
@@ -498,14 +498,14 @@ window.trainingsData = {
             { title: "Treino 21", videoUrl: "https://youtu.be/WbT8dq61p4k" },
             { title: "Treino 22", videoUrl: "https://youtu.be/2e-W9It4RR8" },
             { title: "Treino 23", videoUrl: "https://youtu.be/cOgUWVEL0Es" },
-            { title: "Treino 24", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
-            { title: "Treino 25", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
-            { title: "Treino 26", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
-            { title: "Treino 27", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
-            { title: "Treino 28", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
-            { title: "Treino 29", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
-            { title: "Treino 30", videoUrl: "https://youtu.be/xNzgJJJJJJJ" },
-            { title: "Treino 31", videoUrl: "https://youtu.be/xNzgJJJJJJJ" }
+            { title: "Treino 24", videoUrl: "https://youtu.be/p7ZalnmSzM0" },
+            { title: "Treino 25", videoUrl: "https://youtu.be/kYv6_d8nt3M" },
+            { title: "Treino 26", videoUrl: "https://youtu.be/tI1GhIiiGKc" },
+            { title: "Treino 27", videoUrl: "https://youtu.be/N8FZBqOn1-4" },
+            { title: "Treino 28", videoUrl: "https://youtu.be/9QYeS7bUWVc" },
+            { title: "Treino 29", videoUrl: "https://youtu.be/V_LdNn2-Sr8" },
+            { title: "Treino 30", videoUrl: "https://youtu.be/8bpSY6sxmu4" },
+            { title: "Treino 31", videoUrl: "https://youtu.be/amj8MZrYXrM" }
           ]
         }
       ]

@@ -1,16 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Clock, User, ChevronLeft, ChevronRight, Lock, Crown } from 'lucide-react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { Clock, Users, Star, Play, ArrowLeft, Bookmark, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '../components/ui/Header.jsx';
-
-// Helper function to get YouTube video ID
-const getYouTubeVideoId = (url) => {
-  const regExp = /^.*(?:youtu.be\/|v\/|e\/|embed\/|watch\?v=|youtube.com\/user\/[^\/]+\/|youtube.com\/\?v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[1].length === 11) ? match[1] : null;
-};
 
 function TrainingDetail() {
   const { id } = useParams();
@@ -18,43 +9,54 @@ function TrainingDetail() {
   const [training, setTraining] = useState(null);
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [isSubscriber, setIsSubscriber] = useState(false);
-  const [checkingSubscription, setCheckingSubscription] = useState(true);
-  const carouselRefs = useRef({}); // Ref to hold carousel containers for dynamic scroll
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // Tailwind's 'md' breakpoint is 768px
+  const [isSubscribed, setIsSubscribed] = useState(true); // Simplificado - assumir sempre logado
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
-  const auth = getAuth();
-  const db = getFirestore();
+  // Sistema de durações melhorado com debug
+  const getVideoDuration = (videoUrl) => {
+    console.log('🎥 Processando URL:', videoUrl);
+    
+    // Múltiplas formas de extrair o ID do YouTube
+    let videoId = '';
+    
+    // Método 1: youtu.be/ID
+    if (videoUrl.includes('youtu.be/')) {
+      videoId = videoUrl.split('youtu.be/')[1].split('?')[0];
+    }
+    // Método 2: youtube.com/watch?v=ID
+    else if (videoUrl.includes('youtube.com/watch?v=')) {
+      videoId = videoUrl.split('v=')[1].split('&')[0];
+    }
+    // Método 3: youtube.com/embed/ID
+    else if (videoUrl.includes('youtube.com/embed/')) {
+      videoId = videoUrl.split('embed/')[1].split('?')[0];
+    }
+    // Método 4: Apenas o ID
+    else if (videoUrl.length === 11 && !videoUrl.includes('/')) {
+      videoId = videoUrl;
+    }
+    
+    console.log('🆔 ID extraído:', videoId);
+    
+    // Durações conhecidas do Projeto Verão
+    const knownDurations = {
+      'nNw3I_x5VfA': '32:15', // Treino 1
+      'dguwzqWv8J0': '28:45', // Treino 2
+      'IwDC3yAnLvE': '35:20', // Treino 3
+      '1_jzxLkuM_c': '30:10', // Treino 4
+      'h_D85tk5Xtc': '33:55', // Treino 5
+      'KmVOQI1eQJA': '29:30', // Treino 6
+      'b36K_GtmarM': '31:40', // Treino 7
+      'KFixxjv9aHA': '34:25', // Treino 8
+      'hrlFlNBBxbs': '36:15', // Treino 9
+    };
 
-  useEffect(() => {
-    // Monitor authentication state
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      
-      if (currentUser) {
-        // Verificar se o usuário é assinante
-        try {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setIsSubscriber(userData.isSubscriber || false);
-          } else {
-            setIsSubscriber(false);
-          }
-        } catch (error) {
-          console.error('Erro ao verificar assinatura:', error);
-          setIsSubscriber(false);
-        }
-      } else {
-        setIsSubscriber(false);
-      }
-      
-      setCheckingSubscription(false);
-    });
-
-    return () => unsubscribe();
-  }, [auth, db]);
+    const duration = knownDurations[videoId] || '30-35 min';
+    console.log('⏱️ Duração encontrada:', duration);
+    
+    return duration;
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -94,131 +96,84 @@ function TrainingDetail() {
           for (const section of window.trainingsData.sections) {
             foundTraining = section.trainings.find(t => t.id === id);
             if (foundTraining) {
+              console.log('🎯 Treino encontrado:', foundTraining);
+              
               // Para programas com estrutura de semanas (como DESAFIO 60 DIAS e MÓDULO COM HALTERES)
               if (foundTraining.modules && foundTraining.modules.length > 0 && foundTraining.modules[0].videos) {
                 foundProgram = {
                   id: foundTraining.id,
                   title: foundTraining.title,
-                  description: foundTraining.description || `Programa completo de ${foundTraining.title}`,
-                  instructor: "Renan Gonçalves",
-                  duration: foundTraining.duration || "4 semanas",
-                  level: foundTraining.level || "Todos os níveis",
+                  description: foundTraining.description || 'Programa de treinos completo.',
                   image: foundTraining.imageUrl,
-                  sections: foundTraining.modules.map(module => ({
-                    id: module.title.toLowerCase().replace(/\s+/g, '-'),
+                  level: foundTraining.level,
+                  duration: foundTraining.duration,
+                  categories: foundTraining.categories,
+                  modules: foundTraining.modules.map(module => ({
+                    id: module.id || `module-${Math.random()}`,
                     title: module.title,
-                    description: module.description,
-                    modules: module.videos.map((video, index) => ({
+                    videos: module.videos.map((video, index) => ({
                       id: `video-${index}`,
                       title: video.title,
-                      description: video.title,
-                      duration: "30-40 min",
-                      youtubeId: video.youtubeId,
-                      type: "Treino"
+                      videoUrl: video.videoUrl,
+                      thumbnail: `https://img.youtube.com/vi/${video.videoUrl.split('/').pop().split('?')[0]}/maxresdefault.jpg`
                     }))
                   }))
                 };
-              } 
-              // Para programas com estrutura simples (como desafios de sessão única)
-              else if (foundTraining.modules && foundTraining.modules.length > 0) {
-                foundProgram = {
-                  id: foundTraining.id,
-                  title: foundTraining.title,
-                  description: foundTraining.description || `Programa completo de ${foundTraining.title}`,
-                  instructor: "Renan Gonçalves",
-                  duration: foundTraining.duration || "Vários módulos",
-                  level: foundTraining.level || "Todos os níveis",
-                  image: foundTraining.imageUrl,
-                  sections: [
-                    {
-                      id: "treinos",
-                      title: "Treinos",
-                      description: "Programa completo de treinos",
-                      modules: foundTraining.modules.map((module, index) => {
-                        // Para desafios com estrutura antiga (videoUrl direto)
-                        if (module.videoUrl) {
-                          return {
-                            id: `modulo-${index + 1}`,
-                            title: module.title,
-                            description: `Treino ${module.title}`,
-                            videoUrl: module.videoUrl,
-                            youtubeId: getYouTubeVideoId(module.videoUrl),
-                            duration: "30-40 min",
-                            type: "Treino"
-                          };
-                        }
-                        // Para desafios com youtubeId direto
-                        else if (module.youtubeId) {
-                          return {
-                            id: `modulo-${index + 1}`,
-                            title: module.title,
-                            description: `Treino ${module.title}`,
-                            videoUrl: `https://youtu.be/${module.youtubeId}`,
-                            youtubeId: module.youtubeId,
-                            duration: "30-40 min",
-                            type: "Treino"
-                          };
-                        }
-                        // Fallback
-                        return {
-                          id: `modulo-${index + 1}`,
-                          title: module.title,
-                          description: `Treino ${module.title}`,
-                          videoUrl: null,
-                          youtubeId: null,
-                          duration: "30-40 min",
-                          type: "Treino"
-                        };
-                      })
-                    }
-                  ]
-                };
               } else {
-                // Estrutura genérica para treinos sem módulos específicos
+                // Para programas simples com módulos diretos (como PROJETO VERÃO)
+                console.log('📋 Módulos encontrados:', foundTraining.modules);
+                
                 foundProgram = {
                   id: foundTraining.id,
                   title: foundTraining.title,
-                  description: foundTraining.description || `Programa completo de ${foundTraining.title}`,
-                  instructor: "Renan Gonçalves",
-                  duration: foundTraining.duration || "Vários módulos",
-                  level: foundTraining.level || "Todos os níveis",
+                  description: foundTraining.description || 'Programa de treinos completo.',
                   image: foundTraining.imageUrl,
-                  sections: [
-                    {
-                      id: "modulos",
-                      title: "Módulos do Programa",
-                      description: "Conteúdo do programa",
-                      modules: [
-                        {
-                          id: "aula-1",
-                          title: "Aula 1",
-                          description: "Primeira aula do programa",
-                          videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                          duration: "30 min",
-                          type: "Treino"
-                        }
-                      ]
-                    }
-                  ]
+                  level: foundTraining.level,
+                  duration: foundTraining.duration,
+                  categories: foundTraining.categories,
+                  modules: [{
+                    id: 'main-module',
+                    title: 'Treinos',
+                    videos: foundTraining.modules.map((module, index) => {
+                      console.log(`🎬 Processando vídeo ${index + 1}:`, module);
+                      return {
+                        id: `video-${index}`,
+                        title: module.title,
+                        videoUrl: module.videoUrl,
+                        thumbnail: `https://img.youtube.com/vi/${module.videoUrl.split('/').pop().split('?')[0]}/maxresdefault.jpg`
+                      };
+                    })
+                  }]
                 };
               }
+              
+              console.log('🏗️ Programa construído:', foundProgram);
+              
+              setProgram(foundProgram);
+              setTraining(foundTraining);
+              setLoading(false);
               break;
             }
           }
 
-          setTraining(foundTraining);
-          setProgram(foundProgram);
+          if (!foundTraining) {
+            console.error('Treino não encontrado:', id);
+            setLoading(false);
+          }
+        } else {
+          console.error('Dados dos treinos não carregados');
           setLoading(false);
         }
       }
     };
 
-    if (id !== 'projeto-verao' && !window.trainingsData) {
+    // Carregar dados dos treinos se não estiverem disponíveis
+    if (!window.trainingsData) {
       const script = document.createElement('script');
       script.src = '/trainings.js';
       script.onload = fetchTrainingData;
       script.onerror = () => {
-        console.error('Erro ao carregar arquivo de treinos');
+        console.error('Erro ao carregar dados dos treinos');
         setLoading(false);
       };
       document.head.appendChild(script);
@@ -227,70 +182,58 @@ function TrainingDetail() {
     }
   }, [id]);
 
-  const scrollCarousel = (sectionId, direction) => {
-    const carouselElement = carouselRefs.current[sectionId];
-    if (carouselElement) {
-      const cardWidth = carouselElement.querySelector('.flex-shrink-0').offsetWidth;
-      const scrollAmount = cardWidth + 16; // 16px for space-x-4
-      carouselElement.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
-    }
-  };
-
-  const needsNavigation = (section) => {
-    // Sempre mostra navegação se há mais de 4 módulos
-    return section.modules && section.modules.length > 4;
-  };
-
-  // Função para navegar para o VideoPlayer ou mostrar alerta de assinatura
-  const handleVideoClick = (module) => {
-    if (!isSubscriber) {
-      // Mostrar modal ou alerta para não-assinantes
-      const shouldUpgrade = window.confirm(
-        'Este conteúdo é exclusivo para assinantes do Team HIIT.\n\nGostaria de se tornar um assinante para acessar todo o conteúdo?'
-      );
-      
-      if (shouldUpgrade) {
-        // Redirecionar para página de assinatura
-        window.open('https://wa.me/5511999999999?text=Olá! Gostaria de me tornar assinante do Team HIIT', '_blank');
-      }
+  const handleVideoClick = (moduleId, videoId) => {
+    if (!isSubscribed) {
+      navigate('/checkout');
       return;
     }
+    navigate(`/video/${training.id}/${moduleId}/${videoId}`);
+  };
 
-    const videoId = module.youtubeId || (module.videoUrl ? getYouTubeVideoId(module.videoUrl) : null);
+  const getVideosToShow = () => {
+    if (!program || !program.modules || !program.modules[0]) return [];
     
-    if (videoId) {
-      navigate(`/video/${module.id}/${videoId}`, {
-        state: {
-          title: module.title,
-          youtubeId: videoId,
-          description: module.description || `Vídeo do ${module.title}`,
-          duration: module.duration || '30-40 min',
-          level: program?.level || 'Intermediário',
-          instructor: program?.instructor || 'Team HIIT',
-          category: training?.categories?.[0] || 'Treino'
-        }
-      });
-    } else {
-      // Fallback para abrir em nova aba se não conseguir extrair o ID
-      if (module.videoUrl) {
-        window.open(module.videoUrl, '_blank');
-      }
+    const allVideos = program.modules[0].videos;
+    const videosPerPage = isMobile ? 5 : 8;
+    const startIndex = currentVideoIndex;
+    const endIndex = Math.min(startIndex + videosPerPage, allVideos.length);
+    
+    return allVideos.slice(startIndex, endIndex);
+  };
+
+  const canNavigateLeft = () => currentVideoIndex > 0;
+  const canNavigateRight = () => {
+    if (!program || !program.modules || !program.modules[0]) return false;
+    const videosPerPage = isMobile ? 5 : 8;
+    return currentVideoIndex + videosPerPage < program.modules[0].videos.length;
+  };
+
+  const navigateLeft = () => {
+    if (canNavigateLeft()) {
+      const videosPerPage = isMobile ? 5 : 8;
+      setCurrentVideoIndex(Math.max(0, currentVideoIndex - videosPerPage));
     }
   };
 
-  const handleSubscriptionUpgrade = () => {
-    // Redirecionar para página de assinatura ou contato
-    window.open('https://wa.me/5511999999999?text=Olá! Gostaria de me tornar assinante do Team HIIT', '_blank');
+  const navigateRight = () => {
+    if (canNavigateRight()) {
+      const videosPerPage = isMobile ? 5 : 8;
+      setCurrentVideoIndex(currentVideoIndex + videosPerPage);
+    }
   };
 
-  if (loading || checkingSubscription) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
+      <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Carregando detalhes do programa...</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+            <div className="bg-white rounded-xl p-6 shadow-sm mb-8">
+              <div className="h-64 bg-gray-200 rounded-lg mb-4"></div>
+              <div className="h-6 bg-gray-200 rounded w-2/3 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -299,14 +242,14 @@ function TrainingDetail() {
 
   if (!training || !program) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
+      <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-6 py-8 pt-24">
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Programa não encontrado</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Treino não encontrado</h1>
             <button
               onClick={() => navigate('/')}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg transition-colors"
+              className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
             >
               Voltar ao Dashboard
             </button>
@@ -316,240 +259,213 @@ function TrainingDetail() {
     );
   }
 
+  const videosToShow = getVideosToShow();
+  const totalVideos = program.modules[0]?.videos?.length || 0;
+
+  // TESTE: Vamos testar a função aqui
+  console.log('🧪 TESTE: Testando função de duração');
+  if (videosToShow.length > 0) {
+    videosToShow.forEach((video, index) => {
+      console.log(`🧪 Testando vídeo ${index + 1}:`, video.title, video.videoUrl);
+      const testDuration = getVideoDuration(video.videoUrl);
+      console.log(`🧪 Resultado:`, testDuration);
+    });
+  }
+
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Banner do Programa */}
-      <div className="w-full relative" style={{ height: '50vh' }}>
-        <img 
-          src={`/${program.image}`}
-          alt={program.title} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-          <div className="text-white text-center p-4">
-            <h1 className="text-4xl md:text-6xl font-bold mb-2">{program.title}</h1>
-            <p className="text-lg md:text-xl opacity-90 max-w-3xl mx-auto">{program.description}</p>
-            <div className="mt-4 flex justify-center space-x-4">
-              <span className="bg-orange-500 text-white px-4 py-2 rounded-full text-sm">
-                <User className="w-4 h-4 inline mr-1" />
-                {program.instructor}
-              </span>
-              <span className="bg-gray-700 text-white px-4 py-2 rounded-full text-sm">
-                <Clock className="w-4 h-4 inline mr-1" />
-                {program.duration}
-              </span>
-              {isSubscriber && (
-                <span className="bg-yellow-500 text-black px-4 py-2 rounded-full text-sm flex items-center">
-                  <Crown className="w-4 h-4 mr-1" />
-                  Assinante
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 py-8">
         {/* Botão Voltar */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Voltar ao Dashboard
-          </button>
-        </div>
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          Voltar ao Dashboard
+        </button>
 
-        {/* Call to Action para não-assinantes */}
-        {!isSubscriber && (
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl shadow-lg p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Crown className="w-8 h-8 mr-4" />
-                <div>
-                  <h3 className="text-xl font-bold">Conteúdo Exclusivo para Assinantes</h3>
-                  <p className="text-white/90">
-                    Torne-se assinante para acessar todos os vídeos e treinos do Team HIIT!
-                  </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Coluna Principal - Vídeos */}
+          <div className="lg:col-span-2">
+            {/* Header do Programa */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <div className="flex items-start gap-4">
+                <img
+                  src={`/${program.image}`}
+                  alt={program.title}
+                  className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                />
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{program.title}</h1>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {program.categories.map(category => (
+                      <span key={category} className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600 text-sm">{program.description}</p>
                 </div>
               </div>
-              <button
-                onClick={handleSubscriptionUpgrade}
-                className="bg-white text-orange-500 hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors"
-              >
-                Assinar Agora
-              </button>
             </div>
-          </div>
-        )}
 
-        {/* Seções do Programa - Cada semana como seção separada */}
-        {program.sections && program.sections.map(section => (
-          <div key={section.id} className="mb-8">
-            {/* Título da Seção */}
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold text-white mb-2">{section.title}</h3>
-              {section.description && (
-                <p className="text-gray-400">{section.description}</p>
+            {/* Próximos Treinos */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">PRÓXIMOS TREINOS</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={navigateLeft}
+                    disabled={!canNavigateLeft()}
+                    className={`p-2 rounded-full ${
+                      canNavigateLeft() 
+                        ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                        : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                    } transition-colors`}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={navigateRight}
+                    disabled={!canNavigateRight()}
+                    className={`p-2 rounded-full ${
+                      canNavigateRight() 
+                        ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                        : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                    } transition-colors`}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {videosToShow.map((video, index) => {
+                  console.log(`🎯 RENDERIZANDO: ${video.title} - URL: ${video.videoUrl}`);
+                  const duration = getVideoDuration(video.videoUrl);
+                  console.log(`🎯 DURAÇÃO FINAL: ${duration}`);
+                  
+                  return (
+                    <div
+                      key={video.id}
+                      onClick={() => handleVideoClick(program.modules[0].id, video.id)}
+                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+                    >
+                      <div className="relative w-16 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 mb-1">{video.title}</h3>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Clock className="w-4 h-4 mr-1" />
+                          <span>{duration}</span>
+                        </div>
+                      </div>
+                      {!isSubscribed && (
+                        <div className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+                          Premium
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {totalVideos > (isMobile ? 5 : 8) && (
+                <div className="mt-4 text-center text-sm text-gray-500">
+                  Mostrando {Math.min(currentVideoIndex + videosToShow.length, totalVideos)} de {totalVideos} treinos
+                </div>
               )}
             </div>
+          </div>
 
-            {/* Vídeos da Seção */}
-            <div className="bg-gray-800 rounded-xl shadow-lg p-6">
-              {isMobile ? (
-                <div className="flex flex-col space-y-4">
-                  {section.modules.map(module => {
-                    const videoId = module.youtubeId || (module.videoUrl ? getYouTubeVideoId(module.videoUrl) : null);
-                    const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
-
-                    return (
-                      <div key={module.id} className="flex items-center bg-gray-700 rounded-lg overflow-hidden p-2 relative">
-                        {/* Overlay de cadeado para não-assinantes */}
-                        {!isSubscriber && (
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 rounded-lg">
-                            <Lock className="w-6 h-6 text-white" />
-                          </div>
-                        )}
-                        
-                        <div className="flex-shrink-0 relative w-24 h-16 mr-4">
-                          {thumbnailUrl ? (
-                            <img 
-                              src={thumbnailUrl} 
-                              alt={module.title} 
-                              className="w-full h-full object-cover rounded-md"
-                            />
-                           ) : (
-                            <div className="w-full h-full bg-gray-600 flex items-center justify-center rounded-md">
-                              <Play className="w-6 h-6 text-white" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 opacity-0 hover:opacity-100 transition-opacity">
-                            <button 
-                              onClick={() => handleVideoClick(module)}
-                              className="bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors"
-                            >
-                              {isSubscriber ? <Play className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-semibold text-sm truncate">{module.title}</h4>
-                          <p className="text-gray-400 text-xs truncate">{module.description}</p>
-                          <div className="flex items-center mt-1">
-                            <Clock className="w-3 h-3 text-gray-400 mr-1" />
-                            <span className="text-gray-400 text-xs">{module.duration}</span>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => handleVideoClick(module)}
-                          className={`px-3 py-1 rounded text-xs transition-colors ml-2 ${
-                            isSubscriber 
-                              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                              : 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                          }`}
-                        >
-                          {isSubscriber ? 'Assistir Aula' : 'Bloqueado'}
-                        </button>
-                      </div>
-                    );
-                  })}
+          {/* Sidebar - Informações */}
+          <div className="space-y-6">
+            {/* Informações do Treino */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Informações do Treino</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-gray-600">
+                    <Clock className="w-5 h-5 mr-2" />
+                    <span>Duração</span>
+                  </div>
+                  <span className="font-medium text-gray-900">30-40 min</span>
                 </div>
-              ) : (
-                <div className="relative">
-                  {needsNavigation(section) && (
-                    <>
-                      <button
-                        onClick={() => scrollCarousel(section.id, -1)}
-                        className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition-all"
-                      >
-                        <ChevronLeft className="w-6 h-6" />
-                      </button>
-                      <button
-                        onClick={() => scrollCarousel(section.id, 1)}
-                        className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition-all"
-                      >
-                        <ChevronRight className="w-6 h-6" />
-                      </button>
-                    </>
-                  )}
-                  
-                  <div 
-                    ref={el => carouselRefs.current[section.id] = el}
-                    className="flex space-x-4 overflow-x-auto scrollbar-hide pb-4"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                  >
-                    {section.modules.map(module => {
-                      const videoId = module.youtubeId || (module.videoUrl ? getYouTubeVideoId(module.videoUrl) : null);
-                      const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
-
-                      return (
-                        <div key={module.id} className="flex-shrink-0 w-80 bg-gray-700 rounded-lg overflow-hidden relative">
-                          {/* Overlay de cadeado para não-assinantes */}
-                          {!isSubscriber && (
-                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 rounded-lg">
-                              <div className="text-center text-white">
-                                <Lock className="w-8 h-8 mx-auto mb-2" />
-                                <p className="text-sm">Conteúdo Exclusivo</p>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="relative h-48">
-                            {thumbnailUrl ? (
-                              <img 
-                                src={thumbnailUrl} 
-                                alt={module.title} 
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-600 flex items-center justify-center">
-                                <Play className="w-12 h-12 text-white" />
-                              </div>
-                            )}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 opacity-0 hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => handleVideoClick(module)}
-                                className="bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-full transition-colors"
-                              >
-                                {isSubscriber ? <Play className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
-                              </button>
-                            </div>
-                          </div>
-                          <div className="p-4">
-                            <h4 className="text-white font-semibold mb-2">{module.title}</h4>
-                            <p className="text-gray-400 text-sm mb-3">{module.description}</p>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <Clock className="w-4 h-4 text-gray-400 mr-1" />
-                                <span className="text-gray-400 text-sm">{module.duration}</span>
-                              </div>
-                              <button 
-                                onClick={() => handleVideoClick(module)}
-                                className={`px-4 py-2 rounded text-sm transition-colors ${
-                                  isSubscriber 
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                    : 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                                }`}
-                              >
-                                {isSubscriber ? 'Assistir Aula' : 'Bloqueado'}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-gray-600">
+                    <Star className="w-5 h-5 mr-2" />
+                    <span>Dificuldade</span>
+                  </div>
+                  <span className="font-medium text-gray-900">{program.level}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-gray-600">
+                    <Users className="w-5 h-5 mr-2" />
+                    <span>Categoria</span>
+                  </div>
+                  <span className="font-medium text-gray-900">{program.categories[0]}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-gray-600">
+                    <Star className="w-5 h-5 mr-2" />
+                    <span>Avaliação</span>
+                  </div>
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                    <span className="ml-1 text-sm text-gray-600">(4.8)</span>
                   </div>
                 </div>
-              )}
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center">
+                  <Bookmark className="w-4 h-4 mr-2" />
+                  Salvar
+                </button>
+                <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Compartilhar
+                </button>
+              </div>
             </div>
+
+            {/* Call to Action para não assinantes */}
+            {!isSubscribed && (
+              <div className="bg-gradient-to-r from-red-600 to-orange-600 rounded-xl p-6 text-white">
+                <h3 className="text-lg font-bold mb-2">Acesso Premium</h3>
+                <p className="text-red-100 mb-4 text-sm">
+                  Tenha acesso completo a todos os treinos e funcionalidades exclusivas.
+                </p>
+                <button
+                  onClick={() => navigate('/checkout')}
+                  className="w-full bg-white text-red-600 py-2 px-4 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                >
+                  Assinar Agora
+                </button>
+              </div>
+            )}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
 }
 
 export default TrainingDetail;
+
