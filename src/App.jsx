@@ -11,12 +11,15 @@ import CalorieCalculator from './pages/CalorieCalculator.jsx';
 import NutritionHistory from './pages/NutritionHistory.jsx';
 import Header from './components/ui/Header.jsx';
 import ImagePreloader from './components/ImagePreloader.jsx';
+import PWALogin from './components/PWALogin.jsx';
+import { usePWAAuth } from './hooks/usePWAAuth.js';
 import { auth } from './firebaseConfig';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useToast } from './components/ui/Toast.jsx';
 import './App.css';
 import './styles/responsive.css';
 import './styles/animations.css';
+import './styles/smooth-loading.css';
 import './pwa-ios-fix.css';
 
 function PrivateRoute({ children }) {
@@ -49,11 +52,30 @@ function PrivateRoute({ children }) {
 function AppContent() {
   const { ToastContainer } = useToast();
   const [imagesPreloaded, setImagesPreloaded] = useState(false);
+  const { isPWA, isAuthenticated, loading, requiresAuth, login, logout } = usePWAAuth();
 
   const handlePreloadComplete = () => {
     setImagesPreloaded(true);
   };
 
+  // Loading state para PWA Auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se é PWA e não está autenticado, mostrar tela de login
+  if (requiresAuth) {
+    return <PWALogin onLogin={login} />;
+  }
+
+  // Aplicação normal (navegador ou PWA autenticado)
   return (
     <>
       <ImagePreloader onLoadComplete={handlePreloadComplete}>
@@ -112,6 +134,8 @@ function AppContent() {
         </Router>
       </ImagePreloader>
       <ToastContainer />
+      
+      {/* Debug Info removido para produção */}
     </>
   );
 }

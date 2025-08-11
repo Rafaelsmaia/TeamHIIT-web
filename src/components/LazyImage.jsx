@@ -1,26 +1,41 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const LazyImage = ({ 
   src, 
   alt, 
   className = '', 
   style = {},
+  darkMode = false,
   onLoad,
   onError,
-  placeholder = null
+  ...props 
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const imgRef = useRef(null);
   const observerRef = useRef(null);
 
-  useEffect(() => {
-    const currentImg = imgRef.current;
+  // Função para processar URL com encoding de espaços
+  const processImageUrl = (url) => {
+    if (!url) return '';
     
-    if (!currentImg) return;
+    // Se a URL contém espaços, fazer encoding
+    if (url.includes(' ')) {
+      return url.replace(/ /g, '%20');
+    }
+    
+    return url;
+  };
 
-    // Configuração MUITO mais agressiva para carrosséis
+  const processedSrc = processImageUrl(src);
+
+  useEffect(() => {
+    const currentRef = imgRef.current;
+    
+    if (!currentRef) return;
+
+    // Configurar Intersection Observer
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -31,90 +46,90 @@ const LazyImage = ({
         });
       },
       {
-        threshold: 0, // 0% - qualquer pixel visível já carrega
-        rootMargin: '500px' // Margem MUITO grande - carrega antes mesmo de aparecer
+        rootMargin: '50px',
+        threshold: 0.1
       }
     );
 
-    observerRef.current.observe(currentImg);
+    observerRef.current.observe(currentRef);
 
     return () => {
-      if (observerRef.current && currentImg) {
-        observerRef.current.unobserve(currentImg);
+      if (observerRef.current && currentRef) {
+        observerRef.current.unobserve(currentRef);
       }
     };
   }, []);
 
-  const handleLoad = (e) => {
-    setIsLoaded(true);
-    if (onLoad) onLoad(e);
-  };
+  useEffect(() => {
+    if (!isInView || !processedSrc) return;
 
-  const handleError = (e) => {
-    setHasError(true);
-    if (onError) onError(e);
-  };
+    // Criar uma nova imagem para carregar em background
+    const img = new Image();
+    
+    img.onload = () => {
+      setIsLoaded(true);
+      setHasError(false);
+      if (onLoad) onLoad();
+    };
+    
+    img.onerror = (e) => {
+      console.warn(`Falha ao carregar imagem: ${src} (processada: ${processedSrc})`);
+      setHasError(true);
+      setIsLoaded(false);
+      if (onError) onError(e);
+    };
+    
+    // Iniciar carregamento
+    img.src = processedSrc;
+    
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [isInView, processedSrc, src, onLoad, onError]);
 
-  // Placeholder padrão quando há erro
-  const defaultErrorPlaceholder = (
+  // Reset states quando src muda
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+  }, [src]);
+
+  // Placeholder para erro (só aparece se houver erro)
+  const ErrorPlaceholder = () => (
     <div 
-      className={`flex items-center justify-center bg-gray-200 ${className}`}
+      className={`flex items-center justify-center bg-gray-100 ${darkMode ? 'bg-gray-800' : ''} ${className}`}
       style={style}
     >
-      <div className="text-center text-gray-500">
-        <svg 
-          className="w-8 h-8 mx-auto mb-2" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={2} 
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
-          />
+      <div className="text-center text-gray-400">
+        <svg className="w-8 h-8 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
         </svg>
-        <p className="text-xs">Erro ao carregar imagem</p>
+        <p className="text-xs">Imagem não encontrada</p>
       </div>
     </div>
   );
 
-  // Se há erro, mostrar placeholder de erro
-  if (hasError) {
-    return placeholder || defaultErrorPlaceholder;
-  }
-
   return (
-    <div ref={imgRef} className="relative">
-      {/* Placeholder enquanto não carregou */}
-      {!isLoaded && (
-        <div 
-          className={`absolute inset-0 flex items-center justify-center bg-gray-100 ${className}`}
-          style={style}
-        >
-          {placeholder || (
-            <div className="text-center text-gray-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-              <p className="text-xs">Carregando...</p>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Imagem real - só carrega quando está em view */}
-      {isInView && (
+    <div ref={imgRef} className={className} style={style}>
+      {/* Só mostra a imagem quando estiver completamente carregada */}
+      {isLoaded && !hasError && (
         <img
-          src={src}
+          src={processedSrc}
           alt={alt}
-          className={`transition-opacity duration-300 ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          } ${className}`}
-          style={style}
-          onLoad={handleLoad}
-          onError={handleError}
+          className="w-full h-full"
+          style={{ 
+            objectFit: style?.objectFit || 'cover',
+            display: 'block'
+          }}
+          loading="eager"
+          {...props}
         />
       )}
+      
+      {/* Só mostra placeholder de erro se houver erro */}
+      {hasError && <ErrorPlaceholder />}
+      
+      {/* Enquanto não carregou e não deu erro, não mostra nada (invisível) */}
     </div>
   );
 };

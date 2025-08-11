@@ -2,7 +2,10 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/icone%20team%20hiit.png" />
+    
+    <!-- ÍCONE ORIGINAL COM URL ENCODING -->
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
     
     <!-- VIEWPORT PARA PWA COM NOTCH -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
@@ -13,42 +16,46 @@
     <meta name="description" content="Plataforma de treinos HIIT personalizados com acesso exclusivo para membros" />
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/site.webmanifest" />
     
-    <!-- Apple Touch Icons - MÚLTIPLOS TAMANHOS COM URL ENCODING -->
-    <link rel="apple-touch-icon" sizes="57x57" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="60x60" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="72x72" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="76x76" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="114x114" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="120x120" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icone%20team%20hiit.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icone%20team%20hiit.png" />
+    <!-- Apple Touch Icons - ARQUIVO ORIGINAL -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon.png" />
     
-    <!-- Apple PWA Meta Tags - STATUS BAR TRANSLUCENT -->
+    <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Team HIIT" />
     <meta name="apple-touch-fullscreen" content="yes" />
     
-    <!-- Prevenir zoom e garantir layout fixo -->
+    <!-- Configurações adicionais para iOS -->
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Team HIIT" />
     
     <!-- Microsoft Tiles -->
     <meta name="msapplication-TileColor" content="#111827" />
-    <meta name="msapplication-TileImage" content="/icone%20team%20hiit.png" />
+    <meta name="msapplication-TileImage" content="/apple-touch-icon.png" />
+    <meta name="msapplication-config" content="none" />
     
     <!-- SEO Meta Tags -->
     <meta property="og:title" content="Team HIIT - Treinos Personalizados" />
     <meta property="og:description" content="Plataforma de treinos HIIT personalizados com acesso exclusivo para membros" />
-    <meta property="og:image" content="/icone%20team%20hiit.png" />
+    <meta property="og:image" content="/favicon-96x96.png" />
     <meta property="og:type" content="website" />
     
     <title>Team HIIT - Treinos Personalizados</title>
     
-    <!-- CSS INLINE PARA GARANTIR QUE SEJA APLICADO IMEDIATAMENTE -->
+    <!-- CSS INLINE PARA PWA -->
     <style>
       /* Reset imediato para PWA */
       html, body {
@@ -83,14 +90,28 @@
           background-color: #111827 !important;
           margin: 0 !important;
           padding: 0 !important;
-          /* Header vai até o topo absoluto da tela */
           padding-top: env(safe-area-inset-top, 44px) !important;
         }
         
-        /* Conteúdo principal compensado */
-        main, .main-content, .content {
+        /* Conteúdo principal compensado - CORRIGIDO */
+        .min-h-screen {
           padding-top: calc(4rem + env(safe-area-inset-top, 44px)) !important;
+        }
+        
+        /* CORREÇÃO ESPECÍFICA: Remover padding-top que causa faixa */
+        .pt-20, .pt-16, .pt-12, .pt-8 {
+          padding-top: 0 !important;
+        }
+        
+        /* Garantir que divs com padding-top sejam zeradas */
+        div[class*="pt-"] {
+          padding-top: 0 !important;
+        }
+        
+        /* Banner/Carousel sem espaçamento extra */
+        .carousel, .banner, .hero, [class*="banner"], [class*="hero"], [class*="carousel"] {
           margin-top: 0 !important;
+          padding-top: 0 !important;
         }
       }
     </style>
@@ -166,7 +187,7 @@
       // Detectar se está rodando como PWA e aplicar fixes
       window.addEventListener('DOMContentLoaded', () => {
         if (window.matchMedia('(display-mode: standalone)').matches) {
-          console.log('Rodando como PWA - Status bar translucent ativo');
+          console.log('Rodando como PWA - aplicando correções');
           document.body.classList.add('pwa-mode');
           document.body.style.backgroundColor = '#111827';
           
@@ -185,10 +206,15 @@
               header.style.padding = '0';
               header.style.paddingTop = 'env(safe-area-inset-top, 44px)';
             }
+            
+            // CORREÇÃO: Remover padding-top que causa faixa
+            const elementsWithPadding = document.querySelectorAll('.pt-20, .pt-16, .pt-12, .pt-8, [class*="pt-"]');
+            elementsWithPadding.forEach(el => {
+              el.style.paddingTop = '0px';
+            });
           }, 100);
         }
       });
     </script>
   </body>
 </html>
-

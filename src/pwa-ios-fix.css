@@ -1,110 +1,176 @@
-/* SOLUÇÃO SIMPLES E DIRETA PARA ÁREA TRANSPARENTE NO PWA iOS */
+/* PWA iOS Safe Area Fix - Versão Corrigida */
 
-/* Aplicar APENAS quando rodando como PWA */
-@supports (padding-top: env(safe-area-inset-top)) {
-  @media (display-mode: standalone) {
-    
-    /* STEP 1: Garantir que TUDO tenha background #111827 */
-    html {
-      background-color: #111827 !important;
-      padding: 0 !important;
-      margin: 0 !important;
-    }
-    
-    body {
-      background-color: #111827 !important;
-      padding: 0 !important;
-      margin: 0 !important;
-    }
-    
-    #root {
-      background-color: #111827 !important;
-      padding: 0 !important;
-      margin: 0 !important;
-    }
-    
-    /* STEP 2: Header sem safe area - vai até o topo físico */
-    header {
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      width: 100% !important;
-      z-index: 50 !important;
-      background-color: #111827 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      /* SEM safe area aqui */
-    }
-    
-    /* STEP 3: Container do header COM safe area */
-    header .container {
-      padding-top: env(safe-area-inset-top, 44px) !important;
-      background-color: #111827 !important;
-    }
-    
-    /* STEP 4: Pseudo-elemento para garantir background até o topo */
-    header::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: env(safe-area-inset-top, 44px);
-      background-color: #111827 !important;
-      z-index: -1;
-    }
-    
-    /* STEP 5: Conteúdo principal compensado */
-    main,
-    .main-content,
-    .content,
-    body > #root > *:not(header) {
-      margin-top: calc(4rem + env(safe-area-inset-top, 44px)) !important;
-      padding-top: 0 !important;
-    }
+/* Detectar se está rodando como PWA */
+@media (display-mode: standalone) {
+  
+  /* Remover padding do body que estava causando o espaço extra */
+  body {
+    padding-top: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    padding-left: env(safe-area-inset-left) !important;
+    padding-right: env(safe-area-inset-right) !important;
+    margin: 0 !important;
+  }
+  
+  /* Ajustar apenas o header para respeitar a safe area */
+  header {
+    padding-top: env(safe-area-inset-top) !important;
+    background-color: #111827 !important; /* Garantir que o fundo cubra a safe area */
+  }
+  
+  /* Garantir que o conteúdo principal comece logo após o header */
+  main,
+  .main-content,
+  .container:not(header .container) {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Ajustar o root container */
+  #root {
+    min-height: 100vh;
+    padding-top: 0 !important;
+  }
+  
+  /* Garantir que elementos fixos respeitem a safe area */
+  .fixed-top {
+    top: env(safe-area-inset-top) !important;
   }
 }
 
-/* Fallback para dispositivos sem suporte a env() */
-@media (display-mode: standalone) {
+/* Fallback para dispositivos iOS mais antigos sem suporte a env() */
+@media (display-mode: standalone) and (-webkit-min-device-pixel-ratio: 2) {
   @supports not (padding-top: env(safe-area-inset-top)) {
-    html, body, #root {
-      background-color: #111827 !important;
-    }
-    
     header {
-      position: fixed !important;
-      top: 0 !important;
-      background-color: #111827 !important;
-      padding-top: 44px !important;
-    }
-    
-    main, .main-content, .content, body > #root > *:not(header) {
-      margin-top: calc(4rem + 44px) !important;
+      padding-top: 44px !important; /* Altura padrão da status bar iOS */
     }
   }
 }
 
-/* Classe utilitária para aplicar manualmente */
-.pwa-fix-transparent-header {
-  background-color: #111827 !important;
+/* Ajustes específicos para diferentes modelos de iPhone */
+
+/* iPhone X, XS, 11 Pro */
+@media (display-mode: standalone) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) {
+  header {
+    padding-top: 44px !important;
+  }
 }
 
-/* Debug - para verificar se está funcionando */
+/* iPhone XR, 11 */
+@media (display-mode: standalone) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) {
+  header {
+    padding-top: 44px !important;
+  }
+}
+
+/* iPhone XS Max, 11 Pro Max */
+@media (display-mode: standalone) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) {
+  header {
+    padding-top: 44px !important;
+  }
+}
+
+/* iPhone 12 mini */
+@media (display-mode: standalone) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) {
+  header {
+    padding-top: 50px !important;
+  }
+}
+
+/* iPhone 12, 12 Pro, 13, 13 Pro, 14, 14 Pro */
+@media (display-mode: standalone) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) {
+  header {
+    padding-top: 47px !important;
+  }
+}
+
+/* iPhone 12 Pro Max, 13 Pro Max, 14 Plus, 14 Pro Max */
+@media (display-mode: standalone) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) {
+  header {
+    padding-top: 47px !important;
+  }
+}
+
+/* iPhone 15, 15 Pro */
+@media (display-mode: standalone) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) {
+  header {
+    padding-top: 59px !important;
+  }
+}
+
+/* iPhone 15 Plus, 15 Pro Max */
+@media (display-mode: standalone) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) {
+  header {
+    padding-top: 59px !important;
+  }
+}
+
+/* Garantir que o header tenha altura suficiente */
 @media (display-mode: standalone) {
-  body::after {
-    content: "PWA Ativo - Safe Area: " env(safe-area-inset-top, "não suportado");
+  header {
+    min-height: calc(64px + env(safe-area-inset-top, 44px));
+  }
+  
+  /* Ajustar o container do header para centralizar o conteúdo */
+  header .container {
+    padding-top: 0 !important;
+  }
+  
+  /* Garantir que o conteúdo da página comece imediatamente após o header */
+  body > div:first-child {
+    padding-top: 0 !important;
+  }
+}
+
+/* Classe utilitária para elementos que precisam respeitar safe area */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 20px) !important;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px) !important;
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left, 0px) !important;
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right, 0px) !important;
+}
+
+/* Ajuste para viewport height considerando safe areas */
+.full-height-safe {
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+/* Correção específica para evitar espaço extra no topo */
+@media (display-mode: standalone) {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden;
+  }
+  
+  /* Garantir que não há espaço extra acima do header */
+  body::before,
+  html::before {
+    display: none !important;
+  }
+  
+  /* Remover qualquer margin/padding que possa estar causando o espaço */
+  * {
+    box-sizing: border-box;
+  }
+  
+  /* Garantir que o header seja o primeiro elemento visível */
+  header {
     position: fixed;
-    bottom: 10px;
-    right: 10px;
-    background: rgba(255, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    font-size: 10px;
-    z-index: 9999;
-    border-radius: 4px;
-    display: none; /* Remover para debug */
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
   }
 }
 

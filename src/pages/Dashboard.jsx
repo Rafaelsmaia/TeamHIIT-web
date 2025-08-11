@@ -132,7 +132,7 @@ function Dashboard() {
       <ToastContainer />
       
       {/* Hero Carousel com Proporção Correta */}
-      <div className="w-full mb-8 animate-fade-in-up pt-20">
+      <div className="w-full mb-8 animate-fade-in-up">
         <div className="relative overflow-hidden w-full aspect-[4/5] md:aspect-[16/9] md:h-[800px]">
           {/* Slides Container */}
           <div 
@@ -216,6 +216,7 @@ function Dashboard() {
                           alt={training.title}
                           className="w-full h-full"
                           style={{ objectFit: 'cover' }}
+                          darkMode={true}
                         />
                       </div>
                       <div className="p-4 bg-white">
